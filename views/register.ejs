@@ -1,0 +1,32 @@
+<%- include ("./partials/header.ejs") %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="auth-layout">
+ 
+
+  <article class="auth-card">
+    <h2 class="page-title">Register</h2>
+    <p class="page-subtitle">Set up your account in a few steps.</p>
+    <form action="/register" method="post" class="auth-form">
+        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" required placeholder="you@example.com" />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required placeholder="••••••••" />
+        </div>
+        <div class="form-group">
+          <label for="confirm-password">Confirm Password</label>
+          <input type="password" id="confirm-password" name="confirm-password" required placeholder="••••••••" />
+        </div>
+        <button type="submit" class="button button-primary auth-button">Sign Up</button>
+    </form>
+    <div class="auth-footer">
+      <p>Already have an account? <a href="/login" class="auth-link">Sign in here</a></p>
+    </div>
+  </article>
+</section>
+
+<%- include('./partials/footer.ejs') %>

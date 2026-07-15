@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Reelsbytuzzy</title>
+		<link rel="preconnect" href="https://fonts.googleapis.com" />
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+		<link
+			href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Manrope:wght@400;500;600;700&display=swap"
+			rel="stylesheet"
+		/>
+		<link rel="stylesheet" href="/styles/layout.css" />
+	</head>
+	<body>
+		<div class="site-bg-glow site-bg-glow-a"></div>
+		<div class="site-bg-glow site-bg-glow-b"></div>
+
+		<header class="site-header">
+			<div class="top-ribbon">
+				<span>Reelsbytuzzy Editorial Studio</span>
+			</div>
+			<nav class="main-nav">
+				<a class="brand" href="/">
+					<span class="brand-mark">RB</span>
+					<span class="brand-text">Reelsbytuzzy</span>
+				</a>
+
+				<div class="nav-links">
+					<a href="/">Home</a>
+					<a href="/packages">Packages</a>
+					<a href="/contact">Contact</a>
+				</div>
+
+				<div class="nav-actions">
+					<% if (currentUser) { %>
+						<a class="button button-outline auth-image-button" href="/user" aria-label="User account" title="Your account">
+							<img class="auth-image-icon" src="/assets/user-image.png" alt="User account" />
+						</a>
+					<% } else { %>
+						<a class="button button-outline auth-image-button" href="/login" aria-label="Login" title="Login">
+							<img class="auth-image-icon" src="/assets/user-image.png" alt="Login" />
+						</a>
+					<% } %>
+				</div>
+			</nav>
+		</header>
+
+		<main class="page-wrap">

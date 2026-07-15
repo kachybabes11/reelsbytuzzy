@@ -1,0 +1,87 @@
+<%- include('./partials/header.ejs') %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="hero-split section-shell">
+	<div class="hero-brief">
+		<span class="eyebrow">Editorial Reel Direction</span>
+		<h1>Let's create moments that  last a lifetime.</h1>
+		<p>
+		We capture life's most meaningful moments and transform them into cinematic films that tell your story with emotion, style, and intention.
+		</p>
+		<a href="/contact" class="button button-primary">Book Your Project</a>
+	</div>
+
+	<div class="hero-visuals" aria-hidden="true">
+		<figure class="hero-image hero-image-main">
+			<img src="/assets/beauty-2.jpg" alt="" />
+		</figure>
+		<figure class="hero-image hero-image-offset">
+			<img src="/assets/beauty-1.jpg" alt="" />
+		</figure>
+	</div>
+</section>
+
+
+<br> 
+<br>
+
+<section class="home-essentials section-shell">
+	<div class="home-essentials-head">
+		<h2> Our Packages</h2>
+		<a href="/packages" class="view-more-link">View More</a>
+	</div>
+
+	<div class="home-packages-grid">
+		<% ( essentialPackages || []).forEach((pkg) => { %>
+			<article class="home-package-card">
+				<div class="home-package-media">
+					<% if (pkg.mediaType === 'video') { %>
+						<video controls preload="metadata" playsinline>
+							<source src="<%= pkg.mediaSrc %>" type="video/mp4" />
+						</video>
+					<% } else { %>
+						<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" />
+					<% } %>
+				</div>
+				<div class="home-package-body">
+					<span class="category"><%= pkg.category %></span>
+					<h3><%= pkg.name %></h3>
+					<p><%= pkg.description %></p>
+					<a href="/packages/<%= pkg.slug %>" class="home-package-link">View Package</a>
+				</div>
+			</article>
+		<% }) %>
+	</div>
+</section>
+
+<br>
+<div>Our Services</div>
+<section class="services-row">
+	<article class="card service-card">
+		<h3>Weddings</h3>
+		<p>From quiet morning moments to the final dance, we capture your wedding story as it unfolds. From bridal prep, groom moments, bridal party content, behind-the-scenes clips, cinematic highlight films, and social-first reels, every emotion is documented with intention so you can relive your day for years to come.</p>
+	</article>
+	<article class="card service-card">
+		<h3>Brand Campaigns</h3>
+		<p>We create premium visual content that helps brands stand out. Whether you're launching a new product, running a campaign, or building a stronger online presence, we produce scroll-stopping videos designed for digital marketing. We also partner with businesses on ongoing monthly content production through our dedicated creative team.</p>
+	</article>
+	<article class="card service-card">
+		<h3>Lifestyle Shoots</h3>
+		<p>Turn everyday moments into beautiful visual stories. Whether it's a solo shoot, couple's session, travel content, birthday, graduation, or simply capturing your personality, we create authentic, cinematic videos that feel effortless and timeless.</p>
+	</article>
+    <article class="card service-card">
+		<h3>Personal Branding</h3>
+		<p>    Your brand deserves visuals that communicate confidence and credibility. We create content for entrepreneurs, creators, professionals, and public figures that showcases who you are, what you do, and why your audience should connect with you.</p>
+	</article>
+    <article class="card service-card">
+		<h3>Event Coverage</h3>
+		<p>From intimate celebrations to large-scale productions, we provide cinematic coverage for every occasion. We film birthdays, corporate events, conferences, product launches, concerts, fashion shows, church events, award ceremonies, graduations, and more—capturing every key moment without missing the details.</p>
+	</article>
+    <article class="card service-card">
+		<h3>Creative Direction & BTS shooting</h3>
+		<p>Already have footage? We transform raw clips into polished, engaging films through professional editing, color grading, sound design, and pacing. We also provide creative direction, shapes concepts, plan shoots, coordinate productions, and ensure every frame aligns with your vision and goals. We also offer behind-the-scenes coverage for films, commercials, music videos, fashion shoots, and other creative productions, capturing the moments that bring your project to life.</p>
+	</article>
+
+</section>
+
+<%- include('./partials/footer.ejs') %>

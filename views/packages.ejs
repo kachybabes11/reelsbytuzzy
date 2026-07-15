@@ -1,0 +1,69 @@
+<%- include('./partials/header.ejs') %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="packages-hero section-shell">
+	<span class="eyebrow">Pricing</span>
+	<h1 class="page-title">Choose the Package That Fits Your Vision.</h1>
+	<p class="page-subtitle">
+	</p>
+</section>
+
+<section class="packages-grid-wrap">
+	<div class="packages-grid">
+		<% packages.forEach((pkg) => { %>
+			<article class="package-card <%= pkg.popular ? 'popular' : '' %>">
+				<a class="package-link-cover" href="/packages/<%= pkg.slug %>" aria-label="View <%= pkg.name %> package details"></a>
+				<% if (pkg.popular) { %>
+					<span class="popular-badge">Most Popular</span>
+				<% } %>
+
+				<div class="package-media">
+					<% if (pkg.mediaType === 'video') { %>
+						<video controls preload="metadata" playsinline>
+							<source src="<%= pkg.mediaSrc %>" type="video/mp4" />
+						</video>
+					<% } else { %>
+						<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" />
+					<% } %>
+				</div>
+
+				<div class="package-head">
+					<span class="category"><%= pkg.category %></span>
+					<h3><%= pkg.name %></h3>
+					<p class="description"><%= pkg.description %></p>
+				</div>
+
+				<ul class="features">
+					<% pkg.features.forEach((feature) => { %>
+						<li>
+							<span class="feature-check" aria-hidden="true">+</span>
+							<span><%= feature %></span>
+						</li>
+					<% }) %>
+				</ul>
+
+				<div class="package-info">
+					<div class="info-item">
+						<span>Duration</span>
+						<strong><%= pkg.duration %></strong>
+					</div>
+					<div class="info-item">
+						<span>Delivery</span>
+						<strong><%= pkg.delivery %></strong>
+					</div>
+				</div>
+
+				<div class="package-foot">
+					<div class="price">₦<%= pkg.price.toLocaleString() %></div>
+					<div class="package-actions">
+						<a href="/packages/<%= pkg.slug %>" class="package-btn package-btn-secondary">View Details</a>
+						<a href="/contact?package=<%= encodeURIComponent(pkg.name) %>" class="package-btn">Book This Package</a>
+					</div>
+				</div>
+			</article>
+		<% }) %>
+	</div>
+</section>
+
+
+<%- include('./partials/footer.ejs') %>

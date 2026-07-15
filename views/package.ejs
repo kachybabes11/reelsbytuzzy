@@ -1,0 +1,54 @@
+<%- include('./partials/header.ejs') %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="package-detail section-shell">
+	<div class="package-detail-top">
+		<a href="/packages" class="package-back">Back to Packages</a>
+		<span class="eyebrow"><%= pkg.category %></span>
+		<h1 class="page-title"><%= pkg.name %></h1>
+		<p class="page-subtitle"><%= pkg.fullDescription || pkg.description %></p>
+	</div>
+
+	<div class="package-detail-grid">
+		<div class="package-detail-media">
+			<% if (pkg.mediaType === 'video') { %>
+				<video controls preload="metadata" playsinline>
+					<source src="<%= pkg.mediaSrc %>" type="video/mp4" />
+				</video>
+			<% } else { %>
+				<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" />
+			<% } %>
+		</div>
+
+		<aside class="package-detail-summary">
+			<div class="package-meta-item">
+				<span>Duration</span>
+				<strong><%= pkg.duration %></strong>
+			</div>
+			<div class="package-meta-item">
+				<span>Delivery</span>
+				<strong><%= pkg.delivery %></strong>
+			</div>
+			<div class="package-meta-item package-meta-price">
+				<span>Investment</span>
+				<strong>₦<%= pkg.price.toLocaleString() %></strong>
+			</div>
+			<a href="/contact?package=<%= encodeURIComponent(pkg.name) %>" class="package-btn">Book This Package</a>
+		</aside>
+	</div>
+
+	<div class="package-feature-block">
+		<h2>What Is Included</h2>
+		<ul class="features package-features-detail">
+			<% pkg.features.forEach((feature) => { %>
+				<li>
+					<span class="feature-check" aria-hidden="true">+</span>
+					<span><%= feature %></span>
+				</li>
+			<% }) %>
+		</ul>
+	</div>
+</section>
+
+
+<%- include('./partials/footer.ejs') %>

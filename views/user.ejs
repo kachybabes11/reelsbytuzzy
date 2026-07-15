@@ -1,0 +1,41 @@
+<%- include("./partials/header.ejs") %>
+<%- include("./partials/messages.ejs") %>
+
+<section class="section-shell user-dashboard">
+	<div class="user-dashboard-head">
+		<div>
+			<span class="eyebrow"><a href="/"><-Back</a></span>
+			<h1 class="page-title">Welcome, <%= currentUser?.email || "Creator" %></h1>
+			<p class="page-subtitle">We're excited to have you here. Explore our packages, book your next shoot, and let's create something unforgettable together. This is your profile space where you can review all previous bookings and manage your session.</p>
+		</div>
+		<a class="button button-outline" href="/logout">Logout</a>
+	</div>
+
+	<div class="user-bookings-panel">
+		<h2>Your Bookings</h2>
+		<p>All your previous bookings appear below.</p>
+
+		<% if (bookings && bookings.length) { %>
+			<ul class="user-bookings-list">
+				<% bookings.forEach((booking) => { %>
+					<li class="user-booking-item">
+						<div class="user-booking-main">
+							<h3><%= booking.package_name || "Studio Package" %></h3>
+							<span class="user-booking-date">
+								<%= booking.booking_date ? new Date(booking.booking_date).toLocaleDateString() : "Date not set" %>
+							</span>
+						</div>
+						<span class="user-booking-status"><%= booking.status || "Pending" %></span>
+					</li>
+				<% }) %>
+			</ul>
+		<% } else { %>
+			<div class="user-bookings-empty">
+				<p>No previous bookings yet. Once you book a package, it will show up here.</p>
+				<a class="button button-primary" href="/packages">Explore Packages</a>
+			</div>
+		<% } %>
+	</div>
+</section>
+
+<%- include("./partials/footer.ejs") %>

@@ -1,0 +1,51 @@
+<%- include('./partials/header.ejs') %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="section-shell">
+	<h1 class="page-title">Contact Studio</h1>
+	<p class="page-subtitle">
+		Tell us your content goals and timeline. We will recommend the right workflow and package.
+	</p>
+
+	<div class="contact-grid">
+		<article class="contact-card">
+			<h3>Direct Channels</h3>
+			<ul class="contact-list">
+				<li>Email: reelsbytuzzy@gmail.com</li>
+				<li>WhatsApp: +234 708 806 9114</li>
+				<li>Instagram: @chicnstraps.ng</li>
+				<li>TikTok: @chicnstraps.ng</li>
+			</ul>
+			<p class="mini-note">Business hours: Mon-Sat, 9:00 AM - 6:00 PM WAT</p>
+		</article>
+
+		<article class="contact-card">
+			<h3>Project Brief</h3>
+			<form class="auth-form" method="get" action="/packages">
+				<div class="form-group">
+					<label for="name">Name</label>
+					<input id="name" type="text" name="name" placeholder="Your full name" />
+				</div>
+				<div class="form-group">
+					<label for="email">Email</label>
+					<input id="email" type="email" name="email" placeholder="you@example.com" />
+				</div>
+				<div class="form-group">
+					<label for="project-type">Project Type</label>
+					<select id="project-type" name="projectType">
+						<option>Brand Reels</option>
+						<option>Creator Content</option>
+						<option>Campaign Launch</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label for="message">Message</label>
+					<textarea id="message" name="message" rows="4" placeholder="What kind of content are you planning?"></textarea>
+				</div>
+				<button type="submit" class="button button-primary">Continue to Packages</button>
+			</form>
+		</article>
+	</div>
+</section>
+
+<%- include('./partials/footer.ejs') %>
