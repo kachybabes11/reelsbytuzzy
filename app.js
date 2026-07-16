@@ -32,12 +32,16 @@ const dbEnabled = Boolean(
   process.env.DATABASE_URL ||
     (process.env.PG_USER && process.env.PG_HOST && process.env.PG_DATABASE && process.env.PG_PASSWORD)
 );
-const sessionSecret = process.env.SESSION_SECRET || "dev-session-secret-change-me";
+const sessionSecret = process.env.SESSION_SECRET;
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || "";
 const paystackPublicKey = process.env.PAYSTACK_PUBLIC_KEY || "";
 const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
 const holdMinutes = Number(process.env.BOOKING_HOLD_MINUTES || 15);
 const bookingBufferMinutes = Number(process.env.BOOKING_BUFFER_MINUTES || 60);
+
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
 app.set("view engine", "ejs");
 app.set("views", "views");
