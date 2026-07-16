@@ -155,29 +155,40 @@
 			durationMinutes: document.getElementById('durationMinutes').value,
 		};
 
-		const response = await fetch('/bookings/check-availability', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'CSRF-Token': '<%= csrfToken %>'
-			},
-			body: JSON.stringify(payload),
-		});
+		try {
+			const response = await fetch('/bookings/check-availability', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'CSRF-Token': '<%= csrfToken %>'
+				},
+				body: JSON.stringify(payload),
+			});
 
-		const data = await response.json();
-		if (!response.ok || !data.available) {
+			let data = null;
+			try {
+				data = await response.json();
+			} catch (parseError) {
+				data = null;
+			}
+
+			if (!response.ok || !data?.available) {
+				availabilityMessage.className = 'booking-status error';
+				availabilityMessage.textContent = data?.message || 'Unable to check availability right now. Please try again.';
+				return;
+			}
+
+			availabilityPassed = true;
+			availabilityMessage.className = 'booking-status success';
+			availabilityMessage.textContent = data.message;
+			setTimeout(() => {
+				currentStep = 3;
+				updateProgress();
+			}, 500);
+		} catch (error) {
 			availabilityMessage.className = 'booking-status error';
-			availabilityMessage.textContent = data.message || 'Slot unavailable. Please pick another time.';
-			return;
+			availabilityMessage.textContent = 'Unable to check availability right now. Please try again.';
 		}
-
-		availabilityPassed = true;
-		availabilityMessage.className = 'booking-status success';
-		availabilityMessage.textContent = data.message;
-		setTimeout(() => {
-			currentStep = 3;
-			updateProgress();
-		}, 500);
 	});
 
 	document.getElementById('to-summary').addEventListener('click', () => {
