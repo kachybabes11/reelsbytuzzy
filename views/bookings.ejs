@@ -1,9 +1,249 @@
 <%- include('./partials/header.ejs') %>
 <%- include('./partials/messages.ejs') %>
 
-<section class="section-shell">
-	<h1 class="page-title">Bookings</h1>
-	<p class="page-subtitle">Manage active studio bookings and upcoming content sessions from one place.</p>
+<section class="section-shell booking-shell" data-hold-minutes="<%= holdMinutes %>">
+	<div class="booking-intro">
+		<span class="eyebrow">Guided Booking</span>
+		<h1 class="page-title">Book Your Shoot In Minutes</h1>
+		<p class="page-subtitle">A premium step-by-step flow from package selection to secure payment. Your selected slot is reserved temporarily before payment to reduce double-booking.</p>
+		<p class="page-subtitle">Your selected slot is held for <strong><%= holdMinutes %> minutes</strong> while you complete secure payment.</p>
+	</div>
+
+	<ol class="booking-progress" id="booking-progress">
+		<li class="active">1. Select Package</li>
+		<li>2. Schedule</li>
+		<li>3. Client Info</li>
+		<li>4. Summary</li>
+		<li>5. Payment</li>
+	</ol>
+
+	<form id="booking-form" method="post" action="/bookings/start-payment" novalidate>
+		<input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+		<input type="hidden" id="packageSlug" name="packageSlug" value="<%= selectedPackage?.slug || '' %>" />
+
+		<div class="booking-step active" data-step="1">
+			<div class="booking-grid">
+				<% packages.forEach((pkg) => { %>
+					<article class="booking-package-card <%= selectedPackage?.slug === pkg.slug ? 'selected' : '' %>" data-pkg-card="<%= pkg.slug %>">
+						<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %>" />
+						<div>
+							<p class="booking-package-name"><%= pkg.name %></p>
+							<p class="booking-package-desc"><%= pkg.description %></p>
+							<p class="booking-package-price">₦<%= pkg.price.toLocaleString() %></p>
+						</div>
+						<button class="button button-primary js-select-package" type="button" data-package-slug="<%= pkg.slug %>">Book This Package</button>
+					</article>
+				<% }) %>
+			</div>
+		</div>
+
+		<div class="booking-step" data-step="2">
+			<div class="booking-fields-grid">
+				<label>Date<input required type="date" id="bookingDate" name="bookingDate" /></label>
+				<label>Start Time<input required type="time" id="startTime" name="startTime" /></label>
+				<label>Duration (minutes)
+					<select id="durationMinutes" name="durationMinutes" required>
+						<option value="">Select</option>
+						<option value="60">1 hour</option>
+						<option value="120">2 hours</option>
+						<option value="180">3 hours</option>
+						<option value="240">4 hours</option>
+						<option value="360">6 hours</option>
+					</select>
+				</label>
+				<label>Event Location<input required type="text" id="location" name="location" placeholder="City / Venue" /></label>
+			</div>
+			<div class="booking-inline-actions">
+				<button class="button button-primary" id="check-availability" type="button">Check Availability</button>
+				<span id="availability-message" class="booking-status" aria-live="polite"></span>
+			</div>
+		</div>
+
+		<div class="booking-step" data-step="3">
+			<div class="booking-fields-grid floating-grid">
+				<label class="float-field"><input required type="text" id="fullName" name="fullName" placeholder=" " /><span>Full Name</span></label>
+				<label class="float-field"><input required type="tel" id="phone" name="phone" placeholder=" " /><span>Phone Number</span></label>
+				<label class="float-field"><input required type="email" id="email" name="email" placeholder=" " /><span>Email Address</span></label>
+				<label class="float-field"><input required type="text" id="eventType" name="eventType" placeholder=" " /><span>Event Type</span></label>
+				<label class="float-field full"><input required type="text" id="eventAddress" name="eventAddress" placeholder=" " /><span>Event Address</span></label>
+				<label class="float-field full"><textarea id="notes" name="notes" placeholder=" "></textarea><span>Additional Notes (Optional)</span></label>
+			</div>
+			<div class="booking-inline-actions">
+				<button class="button button-primary" type="button" id="to-summary">Continue To Summary</button>
+			</div>
+		</div>
+
+		<div class="booking-step" data-step="4">
+			<div class="booking-summary-card" id="booking-summary"></div>
+			<div class="booking-inline-actions">
+				<button class="button button-outline" type="button" id="edit-booking">Edit Booking</button>
+				<button class="button button-primary" type="button" id="to-payment">Proceed To Payment</button>
+			</div>
+		</div>
+
+		<div class="booking-step" data-step="5">
+			<div class="booking-payment-card">
+				<h2>Secure Payment</h2>
+				<p>Your selected slot will be reserved for <strong><%= holdMinutes %> minutes</strong> immediately after you click continue.</p>
+				<p>During checkout, you'll see a countdown timer to complete payment before the reservation expires.</p>
+				<% if (!paystackEnabled) { %>
+					<p class="booking-status error">Paystack keys are missing in environment variables. Add PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY.</p>
+				<% } %>
+			</div>
+			<div class="booking-inline-actions">
+				<button class="button button-outline" type="button" id="back-to-summary">Back</button>
+				<button class="button button-primary" type="submit" <%= paystackEnabled ? '' : 'disabled' %>>Continue To Secure Checkout</button>
+			</div>
+		</div>
+	</form>
 </section>
+
+<script>
+(() => {
+	const form = document.getElementById('booking-form');
+	const steps = Array.from(document.querySelectorAll('.booking-step'));
+	const progressItems = Array.from(document.querySelectorAll('#booking-progress li'));
+	const packageSlugInput = document.getElementById('packageSlug');
+	const availabilityMessage = document.getElementById('availability-message');
+	let currentStep = packageSlugInput.value ? 2 : 1;
+	let availabilityPassed = false;
+
+	function updateProgress() {
+		steps.forEach((step) => {
+			const isActive = Number(step.dataset.step) === currentStep;
+			step.classList.toggle('active', isActive);
+		});
+		progressItems.forEach((item, index) => {
+			item.classList.toggle('active', index + 1 <= currentStep);
+		});
+	}
+
+	function selectPackage(slug) {
+		packageSlugInput.value = slug;
+		document.querySelectorAll('[data-pkg-card]').forEach((card) => {
+			card.classList.toggle('selected', card.dataset.pkgCard === slug);
+		});
+		currentStep = 2;
+		updateProgress();
+	}
+
+	document.querySelectorAll('.js-select-package').forEach((button) => {
+		button.addEventListener('click', () => selectPackage(button.dataset.packageSlug));
+	});
+
+	function requiredScheduleReady() {
+		return document.getElementById('bookingDate').value
+			&& document.getElementById('startTime').value
+			&& document.getElementById('durationMinutes').value
+			&& document.getElementById('location').value.trim();
+	}
+
+	document.getElementById('check-availability').addEventListener('click', async () => {
+		if (!requiredScheduleReady()) {
+			availabilityMessage.className = 'booking-status error';
+			availabilityMessage.textContent = 'Please complete all schedule fields first.';
+			return;
+		}
+
+		availabilityMessage.className = 'booking-status loading';
+		availabilityMessage.textContent = 'Checking availability...';
+		availabilityPassed = false;
+
+		const payload = {
+			bookingDate: document.getElementById('bookingDate').value,
+			startTime: document.getElementById('startTime').value,
+			durationMinutes: document.getElementById('durationMinutes').value,
+		};
+
+		const response = await fetch('/bookings/check-availability', {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'CSRF-Token': '<%= csrfToken %>'
+			},
+			body: JSON.stringify(payload),
+		});
+
+		const data = await response.json();
+		if (!response.ok || !data.available) {
+			availabilityMessage.className = 'booking-status error';
+			availabilityMessage.textContent = data.message || 'Slot unavailable. Please pick another time.';
+			return;
+		}
+
+		availabilityPassed = true;
+		availabilityMessage.className = 'booking-status success';
+		availabilityMessage.textContent = data.message;
+		setTimeout(() => {
+			currentStep = 3;
+			updateProgress();
+		}, 500);
+	});
+
+	document.getElementById('to-summary').addEventListener('click', () => {
+		if (!availabilityPassed) {
+			availabilityMessage.className = 'booking-status error';
+			availabilityMessage.textContent = 'Please check availability before continuing.';
+			currentStep = 2;
+			updateProgress();
+			return;
+		}
+
+		const requiredFields = ['fullName', 'phone', 'email', 'eventType', 'eventAddress'];
+		const invalid = requiredFields.some((id) => !document.getElementById(id).value.trim());
+		if (invalid) {
+			alert('Please complete all required client details.');
+			return;
+		}
+
+		const selectedCard = document.querySelector(`[data-pkg-card="${packageSlugInput.value}"]`);
+		const packageName = selectedCard ? selectedCard.querySelector('.booking-package-name').textContent : 'Selected Package';
+		const packagePrice = selectedCard ? selectedCard.querySelector('.booking-package-price').textContent : '';
+
+		document.getElementById('booking-summary').innerHTML = `
+			<h2>Booking Summary</h2>
+			<ul>
+				<li><span>Package</span><strong>${packageName}</strong></li>
+				<li><span>Package Price</span><strong>${packagePrice}</strong></li>
+				<li><span>Event Date</span><strong>${document.getElementById('bookingDate').value}</strong></li>
+				<li><span>Event Time</span><strong>${document.getElementById('startTime').value}</strong></li>
+				<li><span>Duration</span><strong>${document.getElementById('durationMinutes').value} mins</strong></li>
+				<li><span>Location</span><strong>${document.getElementById('location').value}</strong></li>
+				<li><span>Client</span><strong>${document.getElementById('fullName').value}</strong></li>
+				<li><span>Phone</span><strong>${document.getElementById('phone').value}</strong></li>
+				<li><span>Email</span><strong>${document.getElementById('email').value}</strong></li>
+			</ul>
+		`;
+
+		currentStep = 4;
+		updateProgress();
+	});
+
+	document.getElementById('edit-booking').addEventListener('click', () => {
+		currentStep = 2;
+		updateProgress();
+	});
+
+	document.getElementById('to-payment').addEventListener('click', () => {
+		currentStep = 5;
+		updateProgress();
+	});
+
+	document.getElementById('back-to-summary').addEventListener('click', () => {
+		currentStep = 4;
+		updateProgress();
+	});
+
+	form.addEventListener('submit', (event) => {
+		if (!packageSlugInput.value) {
+			event.preventDefault();
+			currentStep = 1;
+			updateProgress();
+		}
+	});
+
+	updateProgress();
+})();
+</script>
 
 <%- include('./partials/footer.ejs') %>

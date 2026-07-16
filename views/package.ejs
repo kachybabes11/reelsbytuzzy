@@ -33,7 +33,7 @@
 				<span>Investment</span>
 				<strong>₦<%= pkg.price.toLocaleString() %></strong>
 			</div>
-			<a href="/contact?package=<%= encodeURIComponent(pkg.name) %>" class="package-btn">Book This Package</a>
+			<a href="/bookings?package=<%= encodeURIComponent(pkg.slug) %>" class="package-btn">Book This Package</a>
 		</aside>
 	</div>
 

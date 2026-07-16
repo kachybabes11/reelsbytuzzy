@@ -1,10 +1,31 @@
 <%- include('./partials/header.ejs') %>
 <%- include('./partials/messages.ejs') %>
 
-<section class="section-shell">
-	<h1 class="page-title">Thank You</h1>
-	<p class="page-subtitle">Your request has been received. Our team will reach out with the next steps shortly.</p>
-	<a href="/" class="button button-primary">Return Home</a>
+<section class="section-shell booking-confirmation <%= success ? 'success' : 'error' %>">
+	<div class="confirmation-icon-wrap">
+		<div class="confirmation-icon <%= success ? 'is-success' : 'is-error' %>">
+			<% if (success) { %>
+				<span class="checkmark"></span>
+			<% } else { %>
+				<span class="crossmark"></span>
+			<% } %>
+		</div>
+	</div>
+
+	<h1 class="page-title"><%= success ? 'Booking Confirmed' : 'Booking Needs Attention' %></h1>
+	<p class="page-subtitle"><%= message %></p>
+
+	<div class="confirmation-meta">
+		<p><strong>Booking Reference:</strong> <%= bookingReference || 'Pending Manual Review' %></p>
+		<p><strong>Package:</strong> <%= packageName || 'Not Available' %></p>
+		<p><strong>Event Date:</strong> <%= bookingDate ? new Date(bookingDate).toLocaleDateString() : 'Not Available' %></p>
+		<p><strong>Contact:</strong> +234 708 806 9114 | reelsbytuzzy@gmail.com</p>
+	</div>
+
+	<div class="confirmation-actions">
+		<a href="/" class="button button-primary">Return Home</a>
+		<button class="button button-outline" type="button" disabled>Download Receipt (Coming Soon)</button>
+	</div>
 </section>
 
 <%- include('./partials/footer.ejs') %>

@@ -21,16 +21,28 @@
 				<span>Reelsbytuzzy Editorial Studio</span>
 			</div>
 			<nav class="main-nav">
-				<a class="brand" href="/">
-					<span class="brand-mark">RB</span>
-					<span class="brand-text">Reelsbytuzzy</span>
-				</a>
+				<div class="nav-left">
+					<button class="nav-toggle" type="button" aria-label="Open navigation menu" aria-controls="site-nav-links" aria-expanded="false">
+						<span></span>
+						<span></span>
+						<span></span>
+					</button>
+					<a class="brand" href="/">
+						<span class="brand-mark">RB</span>
+						<span class="brand-text">Reelsbytuzzy</span>
+					</a>
+				</div>
 
-				<div class="nav-links">
+				<div class="nav-links" id="site-nav-links">
 					<a href="/">Home</a>
 					<a href="/packages">Packages</a>
+					<% if (currentUser && (currentUser.is_admin || currentUser.role === 'admin')) { %>
+						<a href="/admin/bookings">Admin</a>
+					<% } %>
 					<a href="/contact">Contact</a>
 				</div>
+
+				<button class="nav-overlay" type="button" aria-label="Close navigation menu"></button>
 
 				<div class="nav-actions">
 					<% if (currentUser) { %>
@@ -44,6 +56,47 @@
 					<% } %>
 				</div>
 			</nav>
+			<script>
+			(() => {
+				const toggle = document.querySelector('.nav-toggle');
+				const overlay = document.querySelector('.nav-overlay');
+				const navLinks = document.querySelector('.nav-links');
+				if (!toggle || !overlay || !navLinks) return;
+
+				const closeNav = () => {
+					document.body.classList.remove('nav-open');
+					toggle.setAttribute('aria-expanded', 'false');
+				};
+
+				const openNav = () => {
+					document.body.classList.add('nav-open');
+					toggle.setAttribute('aria-expanded', 'true');
+				};
+
+				toggle.addEventListener('click', () => {
+					if (document.body.classList.contains('nav-open')) {
+						closeNav();
+					} else {
+						openNav();
+					}
+				});
+
+				overlay.addEventListener('click', closeNav);
+				navLinks.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeNav));
+
+				document.addEventListener('keydown', (event) => {
+					if (event.key === 'Escape') {
+						closeNav();
+					}
+				});
+
+				window.addEventListener('resize', () => {
+					if (window.innerWidth > 980) {
+						closeNav();
+					}
+				});
+			})();
+			</script>
 		</header>
 
 		<main class="page-wrap">

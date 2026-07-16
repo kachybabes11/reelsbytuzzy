@@ -1,0 +1,99 @@
+<%- include('./partials/header.ejs') %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="section-shell admin-dashboard-shell">
+	<div class="admin-dashboard-head">
+		<div>
+			<span class="eyebrow">Administrator</span>
+			<h1 class="page-title">Bookings Dashboard</h1>
+			<p class="page-subtitle">Monitor confirmed sessions, active reservations, and upcoming production schedule in one place.</p>
+		</div>
+	</div>
+
+	<div class="admin-kpi-grid">
+		<article class="admin-kpi-card">
+			<span>Total Confirmed</span>
+			<strong><%= Number(stats?.total_confirmed || 0).toLocaleString() %></strong>
+		</article>
+		<article class="admin-kpi-card">
+			<span>Confirmed Today</span>
+			<strong><%= Number(stats?.today_confirmed || 0).toLocaleString() %></strong>
+		</article>
+		<article class="admin-kpi-card">
+			<span>Upcoming</span>
+			<strong><%= Number(stats?.upcoming_confirmed || 0).toLocaleString() %></strong>
+		</article>
+		<article class="admin-kpi-card">
+			<span>Paid Revenue</span>
+			<strong>₦<%= Number(stats?.paid_revenue || 0).toLocaleString() %></strong>
+		</article>
+	</div>
+
+	<section class="admin-holds-panel">
+		<h2>Active Temporary Reservations</h2>
+		<p>Slots are reserved while customers complete payment. Transit/prep buffer between sessions: <strong><%= bookingBufferMinutes %> minutes</strong>.</p>
+		<% if (activeHolds && activeHolds.length) { %>
+			<ul class="admin-holds-list">
+				<% activeHolds.forEach((hold) => { %>
+					<li>
+						<div>
+							<strong><%= hold.customer_name %></strong>
+							<span><%= hold.package_name %> | <%= hold.booking_date ? new Date(hold.booking_date).toLocaleDateString() : '' %> @ <%= hold.start_time ? String(hold.start_time).slice(0, 5) : '' %></span>
+						</div>
+						<small>Expires: <%= hold.expires_at ? new Date(hold.expires_at).toLocaleString() : '' %></small>
+					</li>
+				<% }) %>
+			</ul>
+		<% } else { %>
+			<p>No active reservations right now.</p>
+		<% } %>
+	</section>
+
+	<section class="admin-table-panel">
+		<h2>All Confirmed/Paid Booking Records</h2>
+		<% if (adminRows && adminRows.length) { %>
+			<div class="admin-booking-table-wrap">
+				<table class="admin-booking-table">
+					<thead>
+						<tr>
+							<th>Booking Ref</th>
+							<th>Customer</th>
+							<th>Phone</th>
+							<th>Email</th>
+							<th>Package</th>
+							<th>Date</th>
+							<th>Time</th>
+							<th>Duration</th>
+							<th>Location</th>
+							<th>Payment</th>
+							<th>Status</th>
+							<th>Payment Ref</th>
+						</tr>
+					</thead>
+					<tbody>
+						<% adminRows.forEach((row) => { %>
+							<tr>
+								<td><%= row.booking_reference %></td>
+								<td><%= row.customer_name %></td>
+								<td><%= row.customer_phone %></td>
+								<td><%= row.customer_email %></td>
+								<td><%= row.package_name %></td>
+								<td><%= row.booking_date ? new Date(row.booking_date).toLocaleDateString() : '' %></td>
+								<td><%= row.start_time ? String(row.start_time).slice(0, 5) : '' %> - <%= row.end_time ? String(row.end_time).slice(0, 5) : '' %></td>
+								<td><%= row.duration_minutes %> mins</td>
+								<td><%= row.location %></td>
+								<td><%= row.payment_status %></td>
+								<td><%= row.status %></td>
+								<td><%= row.payment_reference %></td>
+							</tr>
+						<% }) %>
+					</tbody>
+				</table>
+			</div>
+		<% } else { %>
+			<p>No bookings yet.</p>
+		<% } %>
+	</section>
+</section>
+
+<%- include('./partials/footer.ejs') %>

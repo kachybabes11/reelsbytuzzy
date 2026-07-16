@@ -1,9 +1,45 @@
 <%- include('./partials/header.ejs') %>
 <%- include('./partials/messages.ejs') %>
 
-<section class="section-shell">
-	<h1 class="page-title">Checkout</h1>
-	<p class="page-subtitle">Complete your booking securely and confirm project timeline.</p>
+<section class="section-shell booking-checkout-shell">
+	<span class="eyebrow">Secure Payment</span>
+	<h1 class="page-title">Your Slot Is Reserved</h1>
+	<% if (authorizationUrl) { %>
+		<p class="page-subtitle">This booking slot is reserved for you for the next <strong><%= holdMinutes %> minutes</strong>. Please complete payment before the timer expires.</p>
+		<div class="checkout-timer" id="checkout-timer" data-expires-at="<%= expiresAtIso %>">10:00</div>
+		<p class="checkout-reference">Payment Reference: <strong><%= paymentReference %></strong></p>
+		<div class="checkout-actions">
+			<a class="button button-primary" href="<%= authorizationUrl %>">Continue To Paystack</a>
+			<a class="button button-outline" href="/bookings">Edit Booking</a>
+		</div>
+	<% } else { %>
+		<p class="page-subtitle">No active checkout session was found. Start a booking to continue.</p>
+		<a class="button button-primary" href="/bookings">Start Booking</a>
+	<% } %>
 </section>
+
+<script>
+(() => {
+	const timerEl = document.getElementById('checkout-timer');
+	if (!timerEl) return;
+	const expiresAt = new Date(timerEl.dataset.expiresAt).getTime();
+
+	function renderTimer() {
+		const remainingMs = expiresAt - Date.now();
+		if (remainingMs <= 0) {
+			timerEl.textContent = '00:00';
+			timerEl.classList.add('expired');
+			return;
+		}
+		const totalSeconds = Math.floor(remainingMs / 1000);
+		const minutes = String(Math.floor(totalSeconds / 60)).padStart(2, '0');
+		const seconds = String(totalSeconds % 60).padStart(2, '0');
+		timerEl.textContent = `${minutes}:${seconds}`;
+	}
+
+	renderTimer();
+	setInterval(renderTimer, 1000);
+})();
+</script>
 
 <%- include('./partials/footer.ejs') %>
