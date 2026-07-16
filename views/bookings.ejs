@@ -153,14 +153,16 @@
 			bookingDate: document.getElementById('bookingDate').value,
 			startTime: document.getElementById('startTime').value,
 			durationMinutes: document.getElementById('durationMinutes').value,
+			_csrf: document.querySelector('input[name="_csrf"]').value,
 		};
 
 		try {
 			const response = await fetch('/bookings/check-availability', {
 				method: 'POST',
+				credentials: 'same-origin',
 				headers: {
 					'Content-Type': 'application/json',
-					'CSRF-Token': '<%= csrfToken %>'
+					'CSRF-Token': document.querySelector('input[name="_csrf"]').value
 				},
 				body: JSON.stringify(payload),
 			});
