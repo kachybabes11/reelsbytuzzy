@@ -18,8 +18,10 @@
 	<div class="confirmation-meta">
 		<p><strong>Booking Reference:</strong> <%= bookingReference || 'Pending Manual Review' %></p>
 		<p><strong>Package:</strong> <%= packageName || 'Not Available' %></p>
+		<p><strong>Payment:</strong> <%= paymentStatus || 'Pending' %></p>
+		<p><strong>Deposit:</strong> 70% paid, 30% balance due before final delivery.</p>
 		<p><strong>Event Date:</strong> <%= bookingDate ? new Date(bookingDate).toLocaleDateString() : 'Not Available' %></p>
-		<p><strong>ontact:</strong> +234 708 806 9114 | reelsbytuzzy@gmail.com</p>
+		<p><strong>Contact:</strong> +234 708 806 9114 | reelsbytuzzy@gmail.com</p>
 	</div>
 
 	<div class="confirmation-actions">

@@ -5,9 +5,11 @@
 	<div class="booking-intro">
 		<span class="eyebrow">Guided Booking</span>
 		<h1 class="page-title">Book Your Shoot In Minutes</h1>
-		<p class="page-subtitle">A premium step-by-step flow from package selection to secure payment. Your selected slot is reserved temporarily before payment to reduce double-booking.</p>
+		<p class="page-subtitle">A premium step-by-step flow from package selection to secure payment. Your selected slot is held while you complete deposit payment.</p>
 		<p class="page-subtitle">Your selected slot is held for <strong><%= holdMinutes %> minutes</strong> while you complete secure payment.</p>
 	</div>
+
+	<%- include('./partials/booking-rules.ejs') %>
 
 	<ol class="booking-progress" id="booking-progress">
 		<li class="active">1. Select Package</li>
@@ -20,6 +22,7 @@
 	<form id="booking-form" method="post" action="/bookings/start-payment" novalidate>
 		<input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 		<input type="hidden" id="packageSlug" name="packageSlug" value="<%= selectedPackage?.slug || '' %>" />
+		<div id="booking-data" hidden data-packages="<%= encodeURIComponent(JSON.stringify(packages.map((pkg) => ({ slug: pkg.slug, price: pkg.price, isHourly: Boolean(pkg.isHourly), hourlyRate: pkg.hourlyRate || pkg.price, name: pkg.name, category: pkg.category, description: pkg.description })))) %>" data-max-hours="<%= maxHourlyBookingHours %>"></div>
 
 		<div class="booking-step active" data-step="1">
 			<div class="booking-grid">
@@ -28,8 +31,14 @@
 						<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %>" />
 						<div>
 							<p class="booking-package-name"><%= pkg.name %></p>
-							<p class="booking-package-desc"><%= pkg.description %></p>
-							<p class="booking-package-price">₦<%= pkg.price.toLocaleString() %></p>
+							<p class="booking-package-desc"><%= pkg.isHourly ? 'Hourly package' : pkg.description %></p>
+							<p class="booking-package-price">
+								<% if (pkg.isHourly) { %>
+									₦<%= Number(pkg.price).toLocaleString() %>/hour
+								<% } else { %>
+									₦<%= pkg.price.toLocaleString() %>
+								<% } %>
+							</p>
 						</div>
 						<button class="button button-primary js-select-package" type="button" data-package-slug="<%= pkg.slug %>">Book This Package</button>
 					</article>
@@ -41,7 +50,7 @@
 			<div class="booking-fields-grid">
 				<label>Date<input required type="date" id="bookingDate" name="bookingDate" /></label>
 				<label>Start Time<input required type="time" id="startTime" name="startTime" /></label>
-				<label>Duration (minutes)
+				<label id="durationField">Duration (minutes)
 					<select id="durationMinutes" name="durationMinutes" required>
 						<option value="">Select</option>
 						<option value="60">1 hour</option>
@@ -51,7 +60,10 @@
 						<option value="360">6 hours</option>
 					</select>
 				</label>
-				<label>Event Location<input required type="text" id="location" name="location" placeholder="City / Venue" /></label>
+				<label class="hourly-hours-field" id="hourlyHoursField" hidden>Hours Required
+					<input type="number" id="selectedHours" name="selectedHours" min="1" max="<%= maxHourlyBookingHours %>" step="1" />
+				</label>
+				<div class="booking-pricing-breakdown" id="booking-pricing-breakdown"></div>
 			</div>
 			<div class="booking-inline-actions">
 				<button class="button button-primary" id="check-availability" type="button">Check Availability</button>
@@ -65,7 +77,7 @@
 				<label class="float-field"><input required type="tel" id="phone" name="phone" placeholder=" " /><span>Phone Number</span></label>
 				<label class="float-field"><input required type="email" id="email" name="email" placeholder=" " /><span>Email Address</span></label>
 				<label class="float-field"><input required type="text" id="eventType" name="eventType" placeholder=" " /><span>Event Type</span></label>
-				<label class="float-field full"><input required type="text" id="eventAddress" name="eventAddress" placeholder=" " /><span>Event Address</span></label>
+				<label class="float-field full"><textarea required id="eventAddress" name="eventAddress" placeholder=" "></textarea><span>Event Address</span></label>
 				<label class="float-field full"><textarea id="notes" name="notes" placeholder=" "></textarea><span>Additional Notes (Optional)</span></label>
 			</div>
 			<div class="booking-inline-actions">
@@ -83,9 +95,13 @@
 
 		<div class="booking-step" data-step="5">
 			<div class="booking-payment-card">
-				<h2>Secure Payment</h2>
-				<p>Your selected slot will be reserved for <strong><%= holdMinutes %> minutes</strong> immediately after you click continue.</p>
-				<p>During checkout, you'll see a countdown timer to complete payment before the reservation expires.</p>
+				<span class="eyebrow">Secure Payment</span>
+				<h2>Review the deposit, then continue to checkout.</h2>
+				<p>Your selected slot will be reserved for <strong><%= holdMinutes %> minutes</strong> after checkout starts. Pay the 70% deposit to confirm the date.</p>
+				<div class="booking-deposit-note">
+					<p><strong>Deposit:</strong> 70% due now.</p>
+					<p><strong>Balance:</strong> 30% before final delivery.</p>
+				</div>
 				<% if (!paystackEnabled) { %>
 					<p class="booking-status error">Paystack keys are missing in environment variables. Add PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY.</p>
 				<% } %>
@@ -104,9 +120,17 @@
 	const steps = Array.from(document.querySelectorAll('.booking-step'));
 	const progressItems = Array.from(document.querySelectorAll('#booking-progress li'));
 	const packageSlugInput = document.getElementById('packageSlug');
+	const bookingPricingBreakdown = document.getElementById('booking-pricing-breakdown');
+	const hourlyHoursField = document.getElementById('hourlyHoursField');
+	const durationField = document.getElementById('durationField');
+	const selectedHoursInput = document.getElementById('selectedHours');
 	const availabilityMessage = document.getElementById('availability-message');
+	const bookingData = document.getElementById('booking-data');
+	const selectedPackageData = JSON.parse(decodeURIComponent(bookingData.dataset.packages || '[]'));
+	const maxHourlyBookingHours = Number(bookingData.dataset.maxHours || 12);
 	let currentStep = packageSlugInput.value ? 2 : 1;
 	let availabilityPassed = false;
+	let activePackage = selectedPackageData.find((item) => item.slug === packageSlugInput.value) || null;
 
 	function updateProgress() {
 		steps.forEach((step) => {
@@ -120,9 +144,16 @@
 
 	function selectPackage(slug) {
 		packageSlugInput.value = slug;
+		activePackage = selectedPackageData.find((item) => item.slug === slug) || null;
 		document.querySelectorAll('[data-pkg-card]').forEach((card) => {
 			card.classList.toggle('selected', card.dataset.pkgCard === slug);
 		});
+		hourlyHoursField.hidden = !activePackage?.isHourly;
+		if (!activePackage?.isHourly) {
+			selectedHoursInput.value = '';
+		}
+			durationField.hidden = Boolean(activePackage?.isHourly);
+		renderPricingBreakdown();
 		currentStep = 2;
 		updateProgress();
 	}
@@ -132,10 +163,61 @@
 	});
 
 	function requiredScheduleReady() {
-		return document.getElementById('bookingDate').value
+		const baseReady = document.getElementById('bookingDate').value
 			&& document.getElementById('startTime').value
-			&& document.getElementById('durationMinutes').value
-			&& document.getElementById('location').value.trim();
+			&& Boolean(activePackage);
+		if (!baseReady) return false;
+		if (activePackage?.isHourly) {
+			const hoursValue = Number(selectedHoursInput.value);
+			return Number.isInteger(hoursValue) && hoursValue >= 1 && hoursValue <= maxHourlyBookingHours;
+		}
+		return Boolean(document.getElementById('durationMinutes').value);
+	}
+
+	function getSelectedDurationMinutes() {
+		if (activePackage?.isHourly) {
+			const hoursValue = Number(selectedHoursInput.value || 0);
+			return Number.isInteger(hoursValue) && hoursValue > 0 ? hoursValue * 60 : null;
+		}
+		return Number(document.getElementById('durationMinutes').value || 0) || null;
+	}
+
+	function getMoneyBreakdown(total) {
+		const deposit = Math.round(total * 0.7);
+		return {
+			total,
+			deposit,
+			balance: total - deposit,
+		};
+	}
+
+	function renderPricingBreakdown() {
+		if (!bookingPricingBreakdown) return;
+		if (!activePackage) {
+			bookingPricingBreakdown.innerHTML = '';
+			return;
+		}
+
+		if (activePackage.isHourly) {
+			const hoursValue = Number(selectedHoursInput.value || 1);
+			const safeHours = Number.isInteger(hoursValue) && hoursValue >= 1 ? Math.min(hoursValue, maxHourlyBookingHours) : 1;
+			const pricing = getMoneyBreakdown(activePackage.hourlyRate * safeHours);
+			bookingPricingBreakdown.innerHTML = `
+				<div class="pricing-line"><span>Hourly Rate</span><strong>₦${activePackage.hourlyRate.toLocaleString()}/hour</strong></div>
+				<div class="pricing-line"><span>Hours Selected</span><strong>${safeHours}</strong></div>
+				<div class="pricing-line total"><span>Total</span><strong>₦${pricing.total.toLocaleString()}</strong></div>
+				<div class="pricing-line"><span>Deposit (70%)</span><strong>₦${pricing.deposit.toLocaleString()}</strong></div>
+				<div class="pricing-line"><span>Balance (30%)</span><strong>₦${pricing.balance.toLocaleString()}</strong></div>
+			`;
+			return;
+		}
+
+		const pricing = getMoneyBreakdown(activePackage.price);
+		bookingPricingBreakdown.innerHTML = `
+			<div class="pricing-line"><span>Package Price</span><strong>₦${pricing.total.toLocaleString()}</strong></div>
+			<div class="pricing-line"><span>Deposit (70%)</span><strong>₦${pricing.deposit.toLocaleString()}</strong></div>
+			<div class="pricing-line"><span>Balance (30%)</span><strong>₦${pricing.balance.toLocaleString()}</strong></div>
+		`;
 	}
 
 	document.getElementById('check-availability').addEventListener('click', async () => {
@@ -152,7 +234,9 @@
 		const payload = {
 			bookingDate: document.getElementById('bookingDate').value,
 			startTime: document.getElementById('startTime').value,
-			durationMinutes: document.getElementById('durationMinutes').value,
+			durationMinutes: getSelectedDurationMinutes(),
+			selectedHours: selectedHoursInput.value,
+			packageSlug: packageSlugInput.value,
 			_csrf: document.querySelector('input[name="_csrf"]').value,
 		};
 
@@ -212,16 +296,23 @@
 		const selectedCard = document.querySelector(`[data-pkg-card="${packageSlugInput.value}"]`);
 		const packageName = selectedCard ? selectedCard.querySelector('.booking-package-name').textContent : 'Selected Package';
 		const packagePrice = selectedCard ? selectedCard.querySelector('.booking-package-price').textContent : '';
+		const selectedHours = activePackage?.isHourly ? Number(selectedHoursInput.value || 1) : null;
+		const pricing = activePackage?.isHourly
+			? getMoneyBreakdown(activePackage.hourlyRate * selectedHours)
+			: getMoneyBreakdown(Number((packagePrice || '').replace(/[^\d]/g, '') || 0));
 
 		document.getElementById('booking-summary').innerHTML = `
 			<h2>Booking Summary</h2>
 			<ul>
 				<li><span>Package</span><strong>${packageName}</strong></li>
 				<li><span>Package Price</span><strong>${packagePrice}</strong></li>
+				${activePackage?.isHourly ? `<li><span>Hours Selected</span><strong>${selectedHours}</strong></li>` : ''}
+				<li><span>Total</span><strong>₦${pricing.total.toLocaleString()}</strong></li>
+				<li><span>Deposit (70%)</span><strong>₦${pricing.deposit.toLocaleString()}</strong></li>
+				<li><span>Balance (30%)</span><strong>₦${pricing.balance.toLocaleString()}</strong></li>
 				<li><span>Event Date</span><strong>${document.getElementById('bookingDate').value}</strong></li>
 				<li><span>Event Time</span><strong>${document.getElementById('startTime').value}</strong></li>
-				<li><span>Duration</span><strong>${document.getElementById('durationMinutes').value} mins</strong></li>
-				<li><span>Location</span><strong>${document.getElementById('location').value}</strong></li>
+				<li><span>Duration</span><strong>${getSelectedDurationMinutes()} mins</strong></li>
 				<li><span>Client</span><strong>${document.getElementById('fullName').value}</strong></li>
 				<li><span>Phone</span><strong>${document.getElementById('phone').value}</strong></li>
 				<li><span>Email</span><strong>${document.getElementById('email').value}</strong></li>
@@ -231,6 +322,16 @@
 		currentStep = 4;
 		updateProgress();
 	});
+
+	selectedHoursInput?.addEventListener('input', renderPricingBreakdown);
+
+	if (packageSlugInput.value) {
+		selectPackage(packageSlugInput.value);
+	} else {
+		durationField.hidden = false;
+		hourlyHoursField.hidden = true;
+		renderPricingBreakdown();
+	}
 
 	document.getElementById('edit-booking').addEventListener('click', () => {
 		currentStep = 2;

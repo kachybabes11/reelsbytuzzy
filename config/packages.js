@@ -69,7 +69,7 @@ const packages = [
     duration: "Half Day",
     delivery: "5 Days",
     price: 300000,
-    popular: false
+    popular: true
   },
   {
     id: 4,

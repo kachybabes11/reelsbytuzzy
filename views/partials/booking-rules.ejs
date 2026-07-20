@@ -1,0 +1,14 @@
+<section class="booking-rules-card">
+	<div class="booking-rules-head">
+		<span class="eyebrow">Booking Rules</span>
+		<h2>Before You Pay</h2>
+	</div>
+	<div class="booking-rules-list">
+		<% bookingRules.forEach((rule) => { %>
+			<article class="booking-rule-item">
+				<h3><%= rule.title %></h3>
+				<p><%= rule.body %></p>
+			</article>
+		<% }) %>
+	</div>
+</section>

@@ -54,7 +54,13 @@
 				</div>
 
 				<div class="package-foot">
-					<div class="price">₦<%= pkg.price.toLocaleString() %></div>
+					<div class="price">
+						<% if (pkg.isHourly) { %>
+							₦<%= Number(pkg.price).toLocaleString() %>/hour
+						<% } else { %>
+							₦<%= pkg.price.toLocaleString() %>
+						<% } %>
+					</div>
 					<div class="package-actions">
 						<a href="/packages/<%= pkg.slug %>" class="package-btn package-btn-secondary">View Details</a>
 						<a href="/bookings?package=<%= encodeURIComponent(pkg.slug) %>" class="package-btn">Book This Package</a>

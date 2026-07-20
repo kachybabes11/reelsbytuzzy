@@ -1,0 +1,74 @@
+<%- include('./partials/header.ejs') %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="section-shell hourly-hero">
+	<div class="hourly-hero-copy">
+		<span class="eyebrow">Hourly Packages</span>
+		<h1 class="page-title">Flexible coverage, booked by the hour.</h1>
+		<p class="page-subtitle">Choose a category, select the number of hours you need, then continue through the same booking and 70% deposit flow.</p>
+		<div class="hourly-hero-actions">
+			<a href="/bookings" class="button button-primary">Start Booking</a>
+			<a href="/packages" class="button button-outline">View Standard Packages</a>
+		</div>
+	</div>
+	<div class="hourly-hero-panel">
+		<div class="hourly-hero-stat">
+			<span>Deposit</span>
+			<strong>70%</strong>
+		</div>
+		<div class="hourly-hero-stat">
+			<span>Balance</span>
+			<strong>30%</strong>
+		</div>
+		<div class="hourly-hero-stat">
+			<span>Flow</span>
+			<strong>Same checkout</strong>
+		</div>
+	</div>
+</section>
+
+<section class="section-shell">
+	<div class="booking-rules-card">
+		<div class="booking-rules-head">
+			<span class="eyebrow">Booking Rules</span>
+			<h2>Know the policy before you pay</h2>
+		</div>
+		<div class="booking-rules-list">
+			<% bookingRules.forEach((rule) => { %>
+				<article class="booking-rule-item">
+					<h3><%= rule.title %></h3>
+					<p><%= rule.body %></p>
+				</article>
+			<% }) %>
+		</div>
+	</div>
+</section>
+
+<section class="hourly-packages-grid section-shell">
+	<% packages.forEach((pkg) => { %>
+		<article class="hourly-package-card">
+			<div class="hourly-package-top">
+				<span class="category"><%= pkg.category %></span>
+				<h2><%= pkg.name %></h2>
+				<p><%= pkg.description %></p>
+			</div>
+
+			<div class="hourly-price-lockup">
+				<span>From</span>
+				<strong>₦<%= Number(pkg.price).toLocaleString() %>/hour</strong>
+			</div>
+
+			<ul class="hourly-feature-list">
+				<% pkg.features.forEach((feature) => { %>
+					<li><%= feature %></li>
+				<% }) %>
+			</ul>
+
+			<div class="hourly-package-actions">
+				<a href="/bookings?package=<%= encodeURIComponent(pkg.slug) %>" class="button button-primary">Book This Package</a>
+			</div>
+		</article>
+	<% }) %>
+</section>
+
+<%- include('./partials/footer.ejs') %>

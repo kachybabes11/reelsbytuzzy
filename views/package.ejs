@@ -31,8 +31,15 @@
 			</div>
 			<div class="package-meta-item package-meta-price">
 				<span>Investment</span>
-				<strong>₦<%= pkg.price.toLocaleString() %></strong>
+				<strong>
+					<% if (pkg.isHourly) { %>
+						₦<%= Number(pkg.price).toLocaleString() %>/hour
+					<% } else { %>
+						₦<%= pkg.price.toLocaleString() %>
+					<% } %>
+				</strong>
 			</div>
+			<p class="package-deposit-note">Deposit due now: 70%. Balance due before final delivery.</p>
 			<a href="/bookings?package=<%= encodeURIComponent(pkg.slug) %>" class="package-btn">Book This Package</a>
 		</aside>
 	</div>

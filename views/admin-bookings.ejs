@@ -27,7 +27,46 @@
 			<span>Paid Revenue</span>
 			<strong>₦<%= Number(stats?.paid_revenue || 0).toLocaleString() %></strong>
 		</article>
+		<article class="admin-kpi-card">
+			<span>Outstanding Balance</span>
+			<strong>₦<%= Number(stats?.outstanding_balance || 0).toLocaleString() %></strong>
+		</article>
 	</div>
+
+	<section class="admin-holds-panel">
+		<h2>Hourly Packages</h2>
+		<p>Create hourly packages with a category, hourly rate, and deliverables. The booking flow will reuse the same payment path.</p>
+		<form class="admin-inline-form" method="post" action="/admin/hourly-packages">
+			<input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+			<label>Category
+				<select name="category" required>
+					<option value="">Select</option>
+					<% hourlyPackageCategories.forEach((category) => { %>
+						<option value="<%= category %>"><%= category %></option>
+					<% }) %>
+				</select>
+			</label>
+			<label>Hourly Rate
+				<input type="number" name="hourlyRate" min="1" step="1" required />
+			</label>
+			<label>Features / Deliverables
+				<textarea name="features" rows="4" placeholder="One deliverable per line" required></textarea>
+			</label>
+			<button class="button button-primary" type="submit">Create Hourly Package</button>
+		</form>
+	</section>
+
+	<section class="admin-holds-panel">
+		<h2>Hourly Booking Limit</h2>
+		<p>Current maximum hours per hourly booking: <strong><%= maxHourlyBookingHours %></strong></p>
+		<form class="admin-inline-form" method="post" action="/admin/settings/hourly-booking-hours">
+			<input type="hidden" name="_csrf" value="<%= csrfToken %>" />
+			<label>Maximum Hours
+				<input type="number" name="maxHourlyBookingHours" min="1" step="1" value="<%= maxHourlyBookingHours %>" required />
+			</label>
+			<button class="button button-primary" type="submit">Update Limit</button>
+		</form>
+	</section>
 
 	<section class="admin-holds-panel">
 		<h2>Active Temporary Reservations</h2>
@@ -61,6 +100,10 @@
 							<th>Phone</th>
 							<th>Email</th>
 							<th>Package</th>
+							<th>Type</th>
+							<th>Total</th>
+							<th>Deposit</th>
+							<th>Balance</th>
 							<th>Date</th>
 							<th>Time</th>
 							<th>Duration</th>
@@ -78,6 +121,10 @@
 								<td><%= row.customer_phone %></td>
 								<td><%= row.customer_email %></td>
 								<td><%= row.package_name %></td>
+								<td><%= row.package_type %></td>
+								<td>₦<%= Number(row.package_price || 0).toLocaleString() %></td>
+								<td>₦<%= Number(row.deposit_amount || 0).toLocaleString() %></td>
+								<td>₦<%= Number(row.remaining_balance || 0).toLocaleString() %></td>
 								<td><%= row.booking_date ? new Date(row.booking_date).toLocaleDateString() : '' %></td>
 								<td><%= row.start_time ? String(row.start_time).slice(0, 5) : '' %> - <%= row.end_time ? String(row.end_time).slice(0, 5) : '' %></td>
 								<td><%= row.duration_minutes %> mins</td>

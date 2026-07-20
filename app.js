@@ -13,7 +13,13 @@ import csrf from "csurf";
 import { body, validationResult } from "express-validator";
 import db from "./config/db.js";
 import authLimiter from "./middleware/rateLimiting.js";
-import packages from "./config/packages.js"
+import bookingRules from "./config/bookingRules.js";
+import {
+  depositPercentage,
+  hourlyPackageCategories,
+  maxConcurrentBookingsPerSlot,
+  remainingBalancePercentage,
+} from "./config/bookingSettings.js";
 import { appErrorHandler, notFoundHandler } from "./middleware/errorHandling.js";
 import {
   getUserByEmail,
@@ -21,6 +27,17 @@ import {
   createUser,
   findOrCreateGoogleUser,
 } from "./services/userService.js";
+import {
+  createHourlyPackage,
+  getPackageBySlug,
+  getPackages,
+  parseFeatureList,
+} from "./services/packageService.js";
+import {
+  getMaxHourlyBookingHours,
+  setMaxHourlyBookingHours,
+} from "./services/appSettingsService.js";
+import hourlyPackagesCatalog from "./config/hourlyPackages.js";
 
 
 dotenv.config();
@@ -36,7 +53,7 @@ const sessionSecret = process.env.SESSION_SECRET;
 const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || "";
 const paystackPublicKey = process.env.PAYSTACK_PUBLIC_KEY || "";
 const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
-const holdMinutes = Number(process.env.BOOKING_HOLD_MINUTES || 15);
+const holdMinutes = Number(process.env.BOOKING_HOLD_MINUTES || 30);
 const bookingBufferMinutes = Number(process.env.BOOKING_BUFFER_MINUTES || 60);
 
 if (process.env.NODE_ENV === "production") {
@@ -97,11 +114,6 @@ function ensureAdmin(req, res, next) {
   return res.redirect("/403");
 }
 
-function findPackageBySlug(slug) {
-  if (!slug) return null;
-  return packages.find((item) => item.slug === slug) || null;
-}
-
 function parseDurationMinutes(value) {
   const duration = Number(value);
   if (!Number.isInteger(duration) || duration < 30 || duration > 720) {
@@ -126,6 +138,62 @@ function calculateEndTime(startTime, durationMinutes) {
   return `${endHour}:${endMinute}`;
 }
 
+function parsePositiveWholeNumber(value) {
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return null;
+  }
+  return parsed;
+}
+
+function calculateBookingAmounts(totalPrice) {
+  const parsedTotal = Number(totalPrice);
+  const depositAmount = Math.round(parsedTotal * (depositPercentage / 100));
+  const remainingBalance = parsedTotal - depositAmount;
+
+  return {
+    totalPrice: parsedTotal,
+    depositAmount,
+    remainingBalance,
+  };
+}
+
+function buildSlotOverlapClause(dateValueReference, startTimeReference, endTimeReference, bufferReference) {
+  return `NOT (
+    (${dateValueReference}::date + end_time) <= ((${dateValueReference}::date + ${startTimeReference}::time) - make_interval(mins => ${bufferReference}))
+    OR (${dateValueReference}::date + start_time) >= (${dateValueReference}::date + ${endTimeReference}::time)
+  )`;
+}
+
+async function countConcurrentSlotUsage({ bookingDate, startTime, endTime, excludeHoldToken = null, client = db }) {
+  await clearExpiredHolds();
+
+  const bookingsResult = await client.query(
+    `SELECT COUNT(*)::int AS count
+     FROM bookings
+     WHERE status = 'confirmed'
+       AND booking_date = $1
+       AND ${buildSlotOverlapClause("$1", "$2", "$3", "$4")}`,
+    [bookingDate, startTime, endTime, bookingBufferMinutes]
+  );
+
+  const holdsResult = await client.query(
+    `SELECT COUNT(*)::int AS count
+     FROM booking_holds
+     WHERE status = 'active'
+       AND expires_at > now()
+       AND booking_date = $1
+       AND ($5::text IS NULL OR hold_token <> $5)
+       AND ${buildSlotOverlapClause("$1", "$2", "$3", "$4")}`,
+    [bookingDate, startTime, endTime, bookingBufferMinutes, excludeHoldToken]
+  );
+
+  return {
+    confirmedCount: bookingsResult.rows[0]?.count || 0,
+    holdCount: holdsResult.rows[0]?.count || 0,
+  };
+}
+
 async function clearExpiredHolds() {
   await db.query(
     `UPDATE booking_holds
@@ -135,40 +203,8 @@ async function clearExpiredHolds() {
 }
 
 async function isSlotAvailable({ bookingDate, startTime, endTime, excludeHoldToken = null }) {
-  await clearExpiredHolds();
-
-  const bookedConflict = await db.query(
-    `SELECT id
-     FROM bookings
-     WHERE status = 'confirmed'
-       AND booking_date = $1
-       AND NOT (
-         ($1::date + end_time) <= (($1::date + $2::time) - make_interval(mins => $4))
-         OR ($1::date + start_time) >= ($1::date + $3::time)
-       )
-     LIMIT 1`,
-    [bookingDate, startTime, endTime, bookingBufferMinutes]
-  );
-  if (bookedConflict.rowCount) {
-    return false;
-  }
-
-  const holdConflict = await db.query(
-    `SELECT id
-     FROM booking_holds
-     WHERE status = 'active'
-       AND expires_at > now()
-       AND booking_date = $1
-       AND ($5::text IS NULL OR hold_token <> $5)
-       AND NOT (
-         ($1::date + end_time) <= (($1::date + $2::time) - make_interval(mins => $4))
-         OR ($1::date + start_time) >= ($1::date + $3::time)
-       )
-     LIMIT 1`,
-    [bookingDate, startTime, endTime, bookingBufferMinutes, excludeHoldToken]
-  );
-
-  return holdConflict.rowCount === 0;
+  const counts = await countConcurrentSlotUsage({ bookingDate, startTime, endTime, excludeHoldToken });
+  return counts.confirmedCount + counts.holdCount < maxConcurrentBookingsPerSlot;
 }
 
 function generateReference(prefix) {
@@ -255,9 +291,41 @@ passport.deserializeUser(async (id, done) => {
 });
 
 
-app.get("/", (req, res)=>{
-  const essentialPackages = packages.slice(0, 3)
-  res.render("home", { essentialPackages : essentialPackages })
+app.get("/", async (req, res, next) => {
+  try {
+    const packages = await getPackages();
+    const essentialPackages = packages.slice(0, 3);
+    return res.render("home", { essentialPackages });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.get("/hourly-packages", async (req, res, next) => {
+  try {
+    const packages = hourlyPackagesCatalog.map((pkg) => ({
+      ...pkg,
+      name: `${pkg.category} Hourly Package`,
+      description: `${pkg.category} coverage billed per hour with tailored deliverables.`,
+      fullDescription: `Select a ${pkg.category.toLowerCase()} hourly package, review the deliverables, then continue through the same booking and payment flow.`,
+      mediaSrc: pkg.category === "Videography" || pkg.category === "Event Coverage" ? "/assets/beauty-2.jpg" : "/assets/beauty-1.jpg",
+      duration: "1-8 Hours",
+      delivery: "Custom delivery timeline",
+      packageType: "hourly",
+      isHourly: true,
+      hourlyRate: pkg.price,
+      maxHours: 8,
+    }));
+
+    return res.render("hourly-packages", {
+      packages,
+      bookingRules,
+      depositPercentage,
+      remainingBalancePercentage,
+    });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.get("/user", ensureAuthenticated, async (req, res, next) => {
@@ -285,21 +353,43 @@ app.get("/user", ensureAuthenticated, async (req, res, next) => {
   }
 });
 
-app.get("/packages", (req, res) => {
-  res.render("packages", {packages: packages});
-});
-
-app.get("/packages/:slug", (req, res, next) => {
-  const pkg = packages.find((item) => item.slug === req.params.slug)
-  if (!pkg) {
-    return next()
+app.get("/packages", async (req, res, next) => {
+  try {
+    const packages = await getPackages();
+    return res.render("packages", { packages });
+  } catch (error) {
+    return next(error);
   }
-  return res.render("package", { pkg })
 });
 
-app.get("/package", (req, res) => {
-  const pkg = packages[0]
-  res.render("package", { pkg });
+app.get("/packages/:slug", async (req, res, next) => {
+  try {
+    const pkg = await getPackageBySlug(req.params.slug);
+    if (!pkg) {
+      return next();
+    }
+    return res.render("package", {
+      pkg,
+      depositPercentage,
+      remainingBalancePercentage,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.get("/package", async (req, res, next) => {
+  try {
+    const packages = await getPackages();
+    const pkg = packages[0];
+    return res.render("package", {
+      pkg,
+      depositPercentage,
+      remainingBalancePercentage,
+    });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.get("/contact", (req, res) => {
@@ -310,25 +400,42 @@ app.get("/403", (req, res) => {
   res.status(403).render("403");
 });
 
-app.get("/bookings", (req, res) => {
-  const selectedPackage = findPackageBySlug(req.query.package);
-  res.render("bookings", {
-    packages,
-    selectedPackage,
-    holdMinutes,
-    bookingBufferMinutes,
-    paystackEnabled: Boolean(paystackSecretKey && paystackPublicKey),
-  });
+app.get("/bookings", async (req, res, next) => {
+  try {
+    const packages = await getPackages();
+    const selectedPackage = await getPackageBySlug(req.query.package);
+    const maxHourlyBookingHours = await getMaxHourlyBookingHours();
+
+    return res.render("bookings", {
+      packages,
+      selectedPackage,
+      holdMinutes,
+      bookingBufferMinutes,
+      bookingRules,
+      depositPercentage,
+      remainingBalancePercentage,
+      maxHourlyBookingHours,
+      paystackEnabled: Boolean(paystackSecretKey && paystackPublicKey),
+    });
+  } catch (error) {
+    return next(error);
+  }
 });
 
 app.post("/bookings/check-availability", async (req, res, next) => {
   try {
-    const { bookingDate, startTime, durationMinutes } = req.body;
-    const parsedDuration = parseDurationMinutes(durationMinutes);
+    const { packageSlug, bookingDate, startTime, durationMinutes, selectedHours } = req.body;
+    const selectedPackage = await getPackageBySlug(packageSlug);
+    const parsedDuration = selectedPackage?.isHourly
+      ? parsePositiveWholeNumber(selectedHours)
+        ? parsePositiveWholeNumber(selectedHours) * 60
+        : null
+      : parseDurationMinutes(durationMinutes);
+
     if (!bookingDate || !startTime || !parsedDuration) {
       return res.status(400).json({
         available: false,
-        message: "Please provide date, start time, and a valid duration.",
+        message: "Please provide date, start time, and a valid booking duration.",
       });
     }
 
@@ -342,16 +449,19 @@ app.post("/bookings/check-availability", async (req, res, next) => {
 
     const available = await isSlotAvailable({ bookingDate, startTime, endTime });
     if (!available) {
+      const counts = await countConcurrentSlotUsage({ bookingDate, startTime, endTime });
       return res.status(409).json({
         available: false,
-        message: "Unfortunately, this time slot has already been booked. Please choose another date or time.",
+        message: `This time slot is unavailable. ${counts.confirmedCount + counts.holdCount} of ${maxConcurrentBookingsPerSlot} booking spaces are already in use for this period, including the buffer window. Please choose another date or time.`,
       });
     }
+
+    const counts = await countConcurrentSlotUsage({ bookingDate, startTime, endTime });
 
     return res.json({
       available: true,
       endTime,
-      message: "Great news! This time slot is available.",
+      message: `Great news! This time slot is available. ${Math.max(maxConcurrentBookingsPerSlot - (counts.confirmedCount + counts.holdCount), 0)} booking space(s) remain for this period.`,
     });
   } catch (error) {
     return next(error);
@@ -373,7 +483,7 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       bookingDate,
       startTime,
       durationMinutes,
-      location,
+      selectedHours,
       fullName,
       phone,
       email,
@@ -382,11 +492,36 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       notes,
     } = req.body;
 
-    const selectedPackage = findPackageBySlug(packageSlug);
-    const parsedDuration = parseDurationMinutes(durationMinutes);
-    if (!selectedPackage || !bookingDate || !startTime || !parsedDuration || !location || !fullName || !phone || !email || !eventType || !eventAddress) {
+    const selectedPackage = await getPackageBySlug(packageSlug);
+    const maxHourlyBookingHours = await getMaxHourlyBookingHours();
+    const parsedHours = selectedPackage?.isHourly ? parsePositiveWholeNumber(selectedHours) : null;
+    const parsedDuration = selectedPackage?.isHourly
+      ? parseDurationMinutes(Number(parsedHours) * 60)
+      : parseDurationMinutes(durationMinutes);
+
+    if (
+      !selectedPackage ||
+      !bookingDate ||
+      !startTime ||
+      !parsedDuration ||
+      !fullName ||
+      !phone ||
+      !email ||
+      !eventType ||
+      !eventAddress
+    ) {
       req.session.messages = [{ type: "error", text: "Please complete all required booking fields." }];
       return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+    }
+
+    if (selectedPackage.isHourly) {
+      if (!parsedHours || parsedHours > maxHourlyBookingHours) {
+        req.session.messages = [{
+          type: "error",
+          text: `Please select a valid number of hours between 1 and ${maxHourlyBookingHours}.`,
+        }];
+        return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+      }
     }
 
     const endTime = calculateEndTime(startTime, parsedDuration);
@@ -404,32 +539,44 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
     }
 
+    const totalPrice = selectedPackage.isHourly
+      ? selectedPackage.hourlyRate * parsedHours
+      : selectedPackage.price;
+    const { depositAmount, remainingBalance } = calculateBookingAmounts(totalPrice);
+
     const holdToken = generateReference("HOLD");
     const paymentReference = generateReference("PAY");
 
     await db.query(
       `INSERT INTO booking_holds (
-        hold_token, user_id, package_slug, package_name, package_price,
+        hold_token, user_id, package_slug, package_name, package_type, package_price,
+        hourly_rate, selected_hours, deposit_amount, remaining_balance,
         booking_date, start_time, end_time, duration_minutes, location,
         event_type, event_address, customer_name, customer_phone, customer_email,
         additional_notes, payment_reference, status, expires_at
       ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7::time, $8::time, $9, $10,
-        $11, $12, $13, $14, $15,
-        $16, $17, 'active', now() + make_interval(mins => $18)
+        $1, $2, $3, $4, $5, $6,
+        $7, $8, $9, $10,
+        $11, $12::time, $13::time, $14, $15,
+        $16, $17, $18, $19, $20,
+        $21, $22, 'active', now() + make_interval(mins => $23)
       )`,
       [
         holdToken,
         req.user?.id || null,
         selectedPackage.slug,
         selectedPackage.name,
-        selectedPackage.price,
+        selectedPackage.packageType,
+        totalPrice,
+        selectedPackage.isHourly ? selectedPackage.hourlyRate : null,
+        selectedPackage.isHourly ? parsedHours : null,
+        depositAmount,
+        remainingBalance,
         bookingDate,
         startTime,
         endTime,
         parsedDuration,
-        location,
+        eventAddress,
         eventType,
         eventAddress,
         fullName,
@@ -444,7 +591,7 @@ app.post("/bookings/start-payment", async (req, res, next) => {
     try {
       const initResponse = await initializePaystackPayment({
         email,
-        amount: selectedPackage.price * 100,
+        amount: depositAmount * 100,
         reference: paymentReference,
         callback_url: `${appBaseUrl}/bookings/payment/callback`,
         metadata: {
@@ -453,6 +600,11 @@ app.post("/bookings/start-payment", async (req, res, next) => {
           bookingDate,
           startTime,
           durationMinutes: parsedDuration,
+          selectedHours: parsedHours,
+          packageType: selectedPackage.packageType,
+          totalPrice,
+          depositAmount,
+          remainingBalance,
           fullName,
           eventType,
         },
@@ -467,6 +619,18 @@ app.post("/bookings/start-payment", async (req, res, next) => {
         expiresAtIso: new Date(Date.now() + holdMinutes * 60 * 1000).toISOString(),
         holdMinutes,
         paymentReference,
+        bookingRules,
+        depositPercentage,
+        remainingBalancePercentage,
+        summary: {
+          packageName: selectedPackage.name,
+          packageType: selectedPackage.packageType,
+          totalPrice,
+          depositAmount,
+          remainingBalance,
+          selectedHours: parsedHours,
+          hourlyRate: selectedPackage.isHourly ? selectedPackage.hourlyRate : null,
+        },
       });
     } catch (paymentError) {
       await db.query(
@@ -503,6 +667,10 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         bookingReference: row.booking_reference,
         packageName: row.package_name,
         bookingDate: row.booking_date,
+        bookingRules,
+        depositPercentage,
+        remainingBalancePercentage,
+        paymentStatus: "Deposit Paid",
         message: "Your booking has already been confirmed.",
       });
     }
@@ -515,6 +683,10 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         bookingReference: null,
         packageName: null,
         bookingDate: null,
+        bookingRules,
+        depositPercentage,
+        remainingBalancePercentage,
+        paymentStatus: null,
         message: "Payment verification failed. If your account was debited, please contact support with your payment reference.",
       });
     }
@@ -544,6 +716,10 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           bookingReference: null,
           packageName: null,
           bookingDate: null,
+          bookingRules,
+          depositPercentage,
+          remainingBalancePercentage,
+          paymentStatus: null,
           message: "We could not find a booking reservation for this payment. Please contact support.",
         });
       }
@@ -561,24 +737,24 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           bookingReference: null,
           packageName: hold.package_name,
           bookingDate: hold.booking_date,
+          bookingRules,
+          depositPercentage,
+          remainingBalancePercentage,
+          paymentStatus: null,
           message: "Your payment was received, but the reservation expired before confirmation. Please contact support for manual review or refund.",
         });
       }
 
       const conflictCheck = await client.query(
-        `SELECT id
+        `SELECT COUNT(*)::int AS count
          FROM bookings
          WHERE status = 'confirmed'
            AND booking_date = $1
-           AND NOT (
-             ($1::date + end_time) <= (($1::date + $2::time) - make_interval(mins => $4))
-             OR ($1::date + start_time) >= ($1::date + $3::time)
-           )
-         LIMIT 1`,
+           AND ${buildSlotOverlapClause("$1", "$2", "$3", "$4")}`,
         [hold.booking_date, hold.start_time, hold.end_time, bookingBufferMinutes]
       );
 
-      if (conflictCheck.rowCount) {
+      if ((conflictCheck.rows[0]?.count || 0) >= maxConcurrentBookingsPerSlot) {
         await client.query(
           `UPDATE booking_holds SET status = 'released', updated_at = now() WHERE id = $1`,
           [hold.id]
@@ -589,6 +765,10 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           bookingReference: null,
           packageName: hold.package_name,
           bookingDate: hold.booking_date,
+          bookingRules,
+          depositPercentage,
+          remainingBalancePercentage,
+          paymentStatus: null,
           message: "Another customer completed this slot during payment verification. Please contact support for resolution or refund.",
         });
       }
@@ -596,27 +776,34 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
       const bookingReference = generateReference("RB");
       const bookingInsert = await client.query(
         `INSERT INTO bookings (
-          user_id, booking_reference, package_slug, package_name, package_price,
+          user_id, booking_reference, package_slug, package_name, package_type, package_price,
+          hourly_rate, selected_hours, deposit_amount, remaining_balance,
           booking_date, start_time, end_time, duration_minutes, location,
           event_type, event_address, customer_name, customer_phone, customer_email,
           additional_notes, payment_status, status, payment_reference
         ) VALUES (
-          $1, $2, $3, $4, $5,
-          $6, $7, $8, $9, $10,
+          $1, $2, $3, $4, $5, $6,
+          $7, $8, $9, $10,
           $11, $12, $13, $14, $15,
-          $16, 'paid', 'confirmed', $17
+          $16, $17, $18, $19, $20,
+          $21, 'deposit_paid', 'confirmed', $22
         ) RETURNING booking_reference, package_name, booking_date`,
         [
           hold.user_id,
           bookingReference,
           hold.package_slug,
           hold.package_name,
+          hold.package_type,
           hold.package_price,
+          hold.hourly_rate,
+          hold.selected_hours,
+          hold.deposit_amount,
+          hold.remaining_balance,
           hold.booking_date,
           hold.start_time,
           hold.end_time,
           hold.duration_minutes,
-          hold.location,
+          hold.event_address,
           hold.event_type,
           hold.event_address,
           hold.customer_name,
@@ -641,6 +828,10 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         bookingReference: booking.booking_reference,
         packageName: booking.package_name,
         bookingDate: booking.booking_date,
+        bookingRules,
+        depositPercentage,
+        remainingBalancePercentage,
+        paymentStatus: "Deposit Paid",
         message: "Your booking is confirmed. A confirmation has been sent to your email.",
       });
     } catch (transactionError) {
@@ -667,7 +858,8 @@ app.get("/admin/bookings", ensureAuthenticated, ensureAdmin, async (req, res, ne
          COUNT(*) FILTER (WHERE status = 'confirmed')::int AS total_confirmed,
          COUNT(*) FILTER (WHERE booking_date = CURRENT_DATE AND status = 'confirmed')::int AS today_confirmed,
          COUNT(*) FILTER (WHERE booking_date >= CURRENT_DATE AND status = 'confirmed')::int AS upcoming_confirmed,
-         COALESCE(SUM(package_price) FILTER (WHERE payment_status = 'paid' AND status = 'confirmed'), 0)::bigint AS paid_revenue
+        COALESCE(SUM(deposit_amount) FILTER (WHERE payment_status IN ('paid', 'deposit_paid') AND status = 'confirmed'), 0)::bigint AS paid_revenue,
+        COALESCE(SUM(remaining_balance) FILTER (WHERE status = 'confirmed'), 0)::bigint AS outstanding_balance
        FROM bookings`
     );
 
@@ -678,6 +870,12 @@ app.get("/admin/bookings", ensureAuthenticated, ensureAdmin, async (req, res, ne
          customer_phone,
          customer_email,
          package_name,
+         package_type,
+         package_price,
+         hourly_rate,
+         selected_hours,
+         deposit_amount,
+         remaining_balance,
          booking_date,
          start_time,
          end_time,
@@ -695,6 +893,7 @@ app.get("/admin/bookings", ensureAuthenticated, ensureAdmin, async (req, res, ne
       `SELECT
          hold_token,
          package_name,
+         package_type,
          booking_date,
          start_time,
          expires_at,
@@ -709,10 +908,42 @@ app.get("/admin/bookings", ensureAuthenticated, ensureAdmin, async (req, res, ne
       adminRows: bookingsResult.rows,
       activeHolds: holdsResult.rows,
       bookingBufferMinutes,
+      bookingRules,
+      depositPercentage,
+      remainingBalancePercentage,
+      hourlyPackageCategories,
+      maxHourlyBookingHours: await getMaxHourlyBookingHours(),
     });
   } catch (error) {
     return next(error);
   }
+});
+
+app.post("/admin/hourly-packages", ensureAuthenticated, ensureAdmin, async (req, res) => {
+  try {
+    const { category, hourlyRate, features } = req.body;
+    await createHourlyPackage({
+      category,
+      hourlyRate,
+      features: parseFeatureList(features),
+    });
+    req.session.messages = [{ type: "success", text: "Hourly package created successfully." }];
+  } catch (error) {
+    req.session.messages = [{ type: "error", text: error.message || "Unable to create hourly package." }];
+  }
+
+  return res.redirect("/admin/bookings");
+});
+
+app.post("/admin/settings/hourly-booking-hours", ensureAuthenticated, ensureAdmin, async (req, res) => {
+  try {
+    await setMaxHourlyBookingHours(req.body.maxHourlyBookingHours);
+    req.session.messages = [{ type: "success", text: "Maximum hourly booking hours updated." }];
+  } catch (error) {
+    req.session.messages = [{ type: "error", text: error.message || "Unable to update hourly booking hours." }];
+  }
+
+  return res.redirect("/admin/bookings");
 });
 
 app.get("/admin/dashboard", ensureAuthenticated, ensureAdmin, (req, res) => {
@@ -729,6 +960,10 @@ app.get("/checkout", (req, res) => {
     expiresAtIso: null,
     holdMinutes,
     paymentReference: null,
+    bookingRules,
+    depositPercentage,
+    remainingBalancePercentage,
+    summary: null,
   });
 });
 
@@ -738,6 +973,10 @@ app.get("/thank-you", (req, res) => {
     bookingReference: null,
     packageName: null,
     bookingDate: null,
+    bookingRules,
+    depositPercentage,
+    remainingBalancePercentage,
+    paymentStatus: null,
     message: "No confirmed booking was found for this page. Complete payment to see your confirmation.",
   });
 });

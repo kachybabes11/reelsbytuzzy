@@ -4,8 +4,24 @@
 <section class="section-shell booking-checkout-shell">
 	<span class="eyebrow">Secure Payment</span>
 	<h1 class="page-title">Your Slot Is Reserved</h1>
+	<div class="checkout-stage-card">
+		<%- include('./partials/booking-rules.ejs') %>
+	</div>
 	<% if (authorizationUrl) { %>
 		<p class="page-subtitle">This booking slot is reserved for you for the next <strong><%= holdMinutes %> minutes</strong>. Please complete payment before the timer expires.</p>
+		<% if (summary) { %>
+			<div class="checkout-summary-card">
+				<p><strong><%= summary.packageName %></strong></p>
+				<p>Type: <%= summary.packageType %></p>
+				<% if (summary.selectedHours) { %>
+					<p>Hours: <%= summary.selectedHours %></p>
+				<% } %>
+				<p>Total: ₦<%= Number(summary.totalPrice).toLocaleString() %></p>
+				<p>Deposit (70%): ₦<%= Number(summary.depositAmount).toLocaleString() %></p>
+				<p>Balance (30%): ₦<%= Number(summary.remainingBalance).toLocaleString() %></p>
+				<p class="checkout-note">Only the deposit is charged now. The balance remains due before final delivery.</p>
+			</div>
+		<% } %>
 		<div class="checkout-timer" id="checkout-timer" data-expires-at="<%= expiresAtIso %>">10:00</div>
 		<p class="checkout-reference">Payment Reference: <strong><%= paymentReference %></strong></p>
 		<div class="checkout-actions">
