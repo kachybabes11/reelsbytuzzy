@@ -1,57 +1,49 @@
 <%- include('./partials/header.ejs') %>
 <%- include('./partials/messages.ejs') %>
 
-<section class="section-shell hourly-hero">
-	<div class="hourly-hero-copy">
-		<span class="eyebrow">Hourly Booking</span>
-		<h1 class="page-title"><%= pkg ? pkg.name : 'Hourly Booking' %></h1>
-		<p class="page-subtitle">A single premium hourly booking option with event-type selection, tiered duration pricing, and add-on videos.</p>
-		<div class="hourly-hero-actions">
-			<a href="/bookings?package=<%= pkg ? encodeURIComponent(pkg.slug) : '' %>" class="button button-primary">Book Hourly</a>
-			<a href="/packages" class="button button-outline">View Standard Packages</a>
-		</div>
-	</div>
-	<div class="hourly-hero-panel">
-		<div class="hourly-hero-stat">
-			<span>Coverage tiers</span>
-			<strong><%= pkg?.bookingConfig?.durationOptions?.length || 0 %></strong>
-		</div>
-		<div class="hourly-hero-stat">
-			<span>Video add-ons</span>
-			<strong>₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %>/video</strong>
-		</div>
-		<div class="hourly-hero-stat">
-			<span>Best for</span>
-			<strong>Editorial event coverage</strong>
-		</div>
-	</div>
-</section>
-
-<section class="hourly-packages-grid section-shell">
-	<article class="hourly-package-card hourly-package-card-featured">
-		<div class="hourly-package-top">
-			<span class="category"><%= pkg?.category || 'Coverage' %></span>
-			<h2><%= pkg ? pkg.name : 'Hourly Booking' %></h2>
+<section class="section-shell hourly-booking-showcase">
+	<article class="hourly-showcase-card">
+		<div class="hourly-simple-intro">
+			<span class="eyebrow">Hourly Booking</span>
+			<h1 class="page-title"><%= pkg ? pkg.name : 'Hourly Booking' %></h1>
+			<p class="page-subtitle">Choose a session tier first, then add your preferred number of videos.</p>
+			<p class="hourly-pricing-formula">Total price = Session tier + (Number of videos × ₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %>)</p>
 		</div>
 
-		<div class="hourly-price-lockup">
-			<span>Starting at</span>
-			<strong>₦<%= Number(pkg?.price || 0).toLocaleString() %></strong>
-		</div>
+		<section class="hourly-simple-section">
+			<h2>Session Tiers</h2>
+			<ul class="hourly-tier-list">
+				<% if ((pkg?.bookingConfig?.durationOptions || []).length === 0) { %>
+					<li>
+						<span>Tier details will be available shortly.</span>
+						<strong>--</strong>
+					</li>
+				<% } %>
+				<% (pkg?.bookingConfig?.durationOptions || []).forEach((option) => { %>
+					<% const durationLabel = String(option?.label || '').split('—')[0].trim(); %>
+					<li>
+						<span><%= durationLabel || option.label %></span>
+						<strong>₦<%= Number(option.price || 0).toLocaleString() %></strong>
+					</li>
+				<% }) %>
+			</ul>
+		</section>
 
-		<ul class="hourly-feature-list">
-			<% (pkg?.bookingConfig?.eventTypes || []).forEach((feature) => { %>
-				<li><%= feature %></li>
-			<% }) %>
-		</ul>
-
-		<div class="hourly-feature-note">
-			<p><strong>Duration tiers:</strong> <%= (pkg?.bookingConfig?.durationOptions || []).map((option) => option.label).join(' · ') %></p>
-			<p><strong>Video pricing:</strong> ₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %> per video</p>
-		</div>
+		<section class="hourly-simple-section">
+			<h2>Event Types</h2>
+			<div class="hourly-event-pills">
+				<% if ((pkg?.bookingConfig?.eventTypes || []).length === 0) { %>
+					<span class="hourly-event-pill">Event options coming soon</span>
+				<% } %>
+				<% (pkg?.bookingConfig?.eventTypes || []).forEach((eventType) => { %>
+					<span class="hourly-event-pill"><%= eventType %></span>
+				<% }) %>
+			</div>
+			<p class="hourly-video-note">Each edited reel costs ₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %> and is added to your selected session tier.</p>
+		</section>
 
 		<div class="hourly-package-actions">
-			<a href="/bookings?package=<%= pkg ? encodeURIComponent(pkg.slug) : '' %>" class="button button-primary">Book Hourly</a>
+			<a href="/bookings?package=<%= pkg ? encodeURIComponent(pkg.slug) : '' %>" class="button button-primary">Proceed to Hourly Booking</a>
 		</div>
 	</article>
 </section>

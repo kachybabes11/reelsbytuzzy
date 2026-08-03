@@ -2,7 +2,7 @@
 <%- include('./partials/messages.ejs') %>
 
 <section class="packages-hero section-shell">
-	<span class="eyebrow">Pricing</span>
+	<span class="eyebrow">Packages</span>
 	<h1 class="page-title">Choose the Package That Fits Your Vision.</h1>
 	<p class="page-subtitle">
 	</p>
@@ -56,7 +56,7 @@
 				<div class="package-foot">
 					<div class="price">
 						<% if (pkg.isHourly) { %>
-							₦<%= Number(pkg.price).toLocaleString() %> per sesion
+						From ₦<%= Number(pkg.price).toLocaleString() %>
 						<% } else { %>
 							₦<%= pkg.price.toLocaleString() %>
 						<% } %>

@@ -4,6 +4,8 @@
 <section class="package-detail section-shell">
 	<div class="package-detail-top">
 		<a href="/packages" class="package-back">Back to Packages</a>
+		<br />
+		<br />
 		<span class="eyebrow"><%= pkg.category %></span>
 		<h1 class="page-title"><%= pkg.name %></h1>
 		<p class="page-subtitle"><%= pkg.fullDescription || pkg.description %></p>
@@ -30,7 +32,7 @@
 				<strong><%= pkg.delivery %></strong>
 			</div>
 			<div class="package-meta-item package-meta-price">
-				<span>Investment</span>
+				<span>Price</span>
 				<strong>
 					<% if (pkg.isHourly) { %>
 						₦<%= Number(pkg.price).toLocaleString() %>/hour
