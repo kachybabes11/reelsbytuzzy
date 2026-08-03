@@ -14,9 +14,9 @@ import { body, validationResult } from "express-validator";
 import db from "./config/db.js";
 import authLimiter from "./middleware/rateLimiting.js";
 import bookingRules from "./config/bookingRules.js";
+import resend from "./services/resend.js";
 import {
   depositPercentage,
-  hourlyPackageCategories,
   maxConcurrentBookingsPerSlot,
   remainingBalancePercentage,
 } from "./config/bookingSettings.js";
@@ -26,16 +26,17 @@ import {
   getUserById,
   createUser,
   findOrCreateGoogleUser,
+  createPasswordResetToken,
+  getActivePasswordResetTokenByHash,
+  markPasswordResetTokenUsed,
+  updateUserPasswordById,
 } from "./services/userService.js";
 import {
-  createHourlyPackage,
   getPackageBySlug,
   getPackages,
-  parseFeatureList,
 } from "./services/packageService.js";
 import {
   getMaxHourlyBookingHours,
-  setMaxHourlyBookingHours,
 } from "./services/appSettingsService.js";
 import hourlyPackagesCatalog from "./config/hourlyPackages.js";
 
@@ -55,6 +56,9 @@ const paystackPublicKey = process.env.PAYSTACK_PUBLIC_KEY || "";
 const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
 const holdMinutes = Number(process.env.BOOKING_HOLD_MINUTES || 30);
 const bookingBufferMinutes = Number(process.env.BOOKING_BUFFER_MINUTES || 60);
+const adminEmail = process.env.ADMIN_EMAIL || "reelsbytuzzy@gmail.com";
+const resendFromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
+const passwordResetMinutes = Number(process.env.PASSWORD_RESET_TOKEN_MINUTES || 30);
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
@@ -146,6 +150,64 @@ function parsePositiveWholeNumber(value) {
   return parsed;
 }
 
+function getBookingConfig(pkg) {
+  return pkg?.bookingConfig || null;
+}
+
+function getDurationOption(pkg, selectedHours) {
+  const bookingConfig = getBookingConfig(pkg);
+  const normalizedHours = Number(selectedHours);
+
+  if (!bookingConfig?.durationOptions?.length || !Number.isInteger(normalizedHours)) {
+    return null;
+  }
+
+  return bookingConfig.durationOptions.find((option) => Number(option.value) === normalizedHours) || null;
+}
+
+function calculateBookingSelection(pkg, { selectedHours, selectedVideos }) {
+  const bookingConfig = getBookingConfig(pkg);
+  if (!bookingConfig) {
+    return {
+      totalPrice: Number(pkg?.price || 0),
+      selectedOptionLabel: null,
+      selectedOptionPrice: null,
+      selectedHours: null,
+      numberOfVideos: null,
+      videoPrice: null,
+      eventType: "Booking",
+    };
+  }
+
+  const selectedOption = getDurationOption(pkg, selectedHours);
+  if (!selectedOption) {
+    return null;
+  }
+
+  const selectedOptionPrice = Number(selectedOption.price || 0);
+  const durationHours = Number(selectedOption.value);
+  const videoPrice = Number(bookingConfig.videoPrice || 0);
+  const numberOfVideos = bookingConfig.mode === "hourly-booking" ? parsePositiveWholeNumber(selectedVideos) : null;
+
+  if (bookingConfig.mode === "hourly-booking") {
+    if (!numberOfVideos || !Array.isArray(bookingConfig.videoOptions) || !bookingConfig.videoOptions.includes(numberOfVideos)) {
+      return null;
+    }
+  }
+
+  const totalPrice = selectedOptionPrice + (bookingConfig.mode === "hourly-booking" ? numberOfVideos * videoPrice : 0);
+
+  return {
+    totalPrice,
+    selectedOptionLabel: selectedOption.label,
+    selectedOptionPrice,
+    selectedHours: durationHours,
+    numberOfVideos,
+    videoPrice: bookingConfig.mode === "hourly-booking" ? videoPrice : null,
+    eventType: bookingConfig.mode === "hourly-booking" ? "" : "Booking",
+  };
+}
+
 function calculateBookingAmounts(totalPrice) {
   const parsedTotal = Number(totalPrice);
   const depositAmount = Math.round(parsedTotal * (depositPercentage / 100));
@@ -209,6 +271,136 @@ async function isSlotAvailable({ bookingDate, startTime, endTime, excludeHoldTok
 
 function generateReference(prefix) {
   return `${prefix}-${Date.now()}-${crypto.randomBytes(3).toString("hex").toUpperCase()}`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function formatCurrency(amount) {
+  const parsedAmount = Number(amount || 0);
+  return new Intl.NumberFormat("en-NG", {
+    style: "currency",
+    currency: "NGN",
+    maximumFractionDigits: 0,
+  }).format(parsedAmount);
+}
+
+async function sendEmailSafe({ to, subject, html, text }) {
+  if (!process.env.RESEND_API_KEY) {
+    return { sent: false, reason: "RESEND_API_KEY is missing" };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: resendFromEmail,
+      to,
+      subject,
+      html,
+      text,
+    });
+
+    if (error) {
+      console.error("Resend delivery error:", error);
+      return { sent: false, reason: "provider error" };
+    }
+
+    return { sent: true };
+  } catch (error) {
+    console.error("Email send failed:", error);
+    return { sent: false, reason: "exception" };
+  }
+}
+
+function buildBookingEmailHtml({ title, intro, booking }) {
+  const optionLine = booking.selected_option_label
+    ? `<li><strong>Selected Option:</strong> ${escapeHtml(booking.selected_option_label)}</li>`
+    : "";
+  const videosLine = booking.number_of_videos
+    ? `<li><strong>Number of Videos:</strong> ${escapeHtml(booking.number_of_videos)}</li>`
+    : "";
+
+  return `
+    <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;max-width:640px">
+      <h2 style="margin:0 0 10px">${escapeHtml(title)}</h2>
+      <p style="margin:0 0 14px">${escapeHtml(intro)}</p>
+      <ul style="padding-left:18px;margin:0 0 14px">
+        <li><strong>Booking Reference:</strong> ${escapeHtml(booking.booking_reference)}</li>
+        <li><strong>Package:</strong> ${escapeHtml(booking.package_name)}</li>
+        <li><strong>Booking Date:</strong> ${escapeHtml(booking.booking_date)}</li>
+        <li><strong>Time:</strong> ${escapeHtml(booking.start_time)} - ${escapeHtml(booking.end_time)}</li>
+        ${optionLine}
+        ${videosLine}
+        <li><strong>Event Type:</strong> ${escapeHtml(booking.event_type || "Booking")}</li>
+        <li><strong>Event Address:</strong> ${escapeHtml(booking.event_address)}</li>
+        <li><strong>Customer:</strong> ${escapeHtml(booking.customer_name)}</li>
+        <li><strong>Phone:</strong> ${escapeHtml(booking.customer_phone)}</li>
+        <li><strong>Email:</strong> ${escapeHtml(booking.customer_email)}</li>
+        <li><strong>Total:</strong> ${escapeHtml(formatCurrency(booking.package_price))}</li>
+        <li><strong>Deposit Paid:</strong> ${escapeHtml(formatCurrency(booking.deposit_amount))}</li>
+        <li><strong>Remaining Balance:</strong> ${escapeHtml(formatCurrency(booking.remaining_balance))}</li>
+      </ul>
+      <p style="margin:0">Thank you for choosing Reels By Tuzzy.</p>
+    </div>
+  `;
+}
+
+function buildBookingEmailText({ title, intro, booking }) {
+  const optionLine = booking.selected_option_label
+    ? `Selected Option: ${booking.selected_option_label}\n`
+    : "";
+  const videosLine = booking.number_of_videos
+    ? `Number of Videos: ${booking.number_of_videos}\n`
+    : "";
+
+  return `${title}\n\n${intro}\n\nBooking Reference: ${booking.booking_reference}\nPackage: ${booking.package_name}\nBooking Date: ${booking.booking_date}\nTime: ${booking.start_time} - ${booking.end_time}\n${optionLine}${videosLine}Event Type: ${booking.event_type || "Booking"}\nEvent Address: ${booking.event_address}\nCustomer: ${booking.customer_name}\nPhone: ${booking.customer_phone}\nEmail: ${booking.customer_email}\nTotal: ${formatCurrency(booking.package_price)}\nDeposit Paid: ${formatCurrency(booking.deposit_amount)}\nRemaining Balance: ${formatCurrency(booking.remaining_balance)}\n`;
+}
+
+async function sendBookingConfirmationEmails(booking) {
+  const customerSubject = `Booking Confirmed: ${booking.booking_reference}`;
+  const customerIntro = "Your booking deposit was received and your booking is now confirmed.";
+  const customerHtml = buildBookingEmailHtml({
+    title: "Booking Confirmation",
+    intro: customerIntro,
+    booking,
+  });
+  const customerText = buildBookingEmailText({
+    title: "Booking Confirmation",
+    intro: customerIntro,
+    booking,
+  });
+
+  await sendEmailSafe({
+    to: booking.customer_email,
+    subject: customerSubject,
+    html: customerHtml,
+    text: customerText,
+  });
+
+  const adminSubject = `New Booking Confirmed: ${booking.booking_reference}`;
+  const adminIntro = "A customer booking has been confirmed and requires admin visibility.";
+  const adminHtml = buildBookingEmailHtml({
+    title: "New Confirmed Booking",
+    intro: adminIntro,
+    booking,
+  });
+  const adminText = buildBookingEmailText({
+    title: "New Confirmed Booking",
+    intro: adminIntro,
+    booking,
+  });
+
+  await sendEmailSafe({
+    to: adminEmail,
+    subject: adminSubject,
+    html: adminHtml,
+    text: adminText,
+  });
 }
 
 async function initializePaystackPayment(payload) {
@@ -301,24 +493,34 @@ app.get("/", async (req, res, next) => {
   }
 });
 
+app.get("/test-email", async (req, res) => {
+  try {
+    const { data, error } = await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: "kachigirl54@gmail.com",
+      subject: "Resend Test",
+      html: `
+        <h2>Hello user</h2>
+        <p>Your session has been booked.</p>
+      `,
+    });
+
+    if (error) {
+      return res.status(400).json(error);
+    }
+
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Something went wrong.");
+  }
+});
+
 app.get("/hourly-packages", async (req, res, next) => {
   try {
-    const packages = hourlyPackagesCatalog.map((pkg) => ({
-      ...pkg,
-      name: `${pkg.category} Hourly Package`,
-      description: `${pkg.category} coverage billed per hour with tailored deliverables.`,
-      fullDescription: `Select a ${pkg.category.toLowerCase()} hourly package, review the deliverables, then continue through the same booking and payment flow.`,
-      mediaSrc: pkg.category === "Videography" || pkg.category === "Event Coverage" ? "/assets/beauty-2.jpg" : "/assets/beauty-1.jpg",
-      duration: "1-8 Hours",
-      delivery: "Custom delivery timeline",
-      packageType: "hourly",
-      isHourly: true,
-      hourlyRate: pkg.price,
-      maxHours: 8,
-    }));
-
+    const pkg = hourlyPackagesCatalog[0] ? { ...hourlyPackagesCatalog[0] } : null;
     return res.render("hourly-packages", {
-      packages,
+      pkg,
       bookingRules,
       depositPercentage,
       remainingBalancePercentage,
@@ -396,6 +598,10 @@ app.get("/contact", (req, res) => {
   res.render("contact");
 });
 
+app.get("/privacy-policy", (req, res) => {
+  res.render("privacy-policy");
+});
+
 app.get("/403", (req, res) => {
   res.status(403).render("403");
 });
@@ -424,13 +630,17 @@ app.get("/bookings", async (req, res, next) => {
 
 app.post("/bookings/check-availability", async (req, res, next) => {
   try {
-    const { packageSlug, bookingDate, startTime, durationMinutes, selectedHours } = req.body;
+    const { packageSlug, bookingDate, startTime, durationMinutes, selectedHours, selectedVideos } = req.body;
     const selectedPackage = await getPackageBySlug(packageSlug);
-    const parsedDuration = selectedPackage?.isHourly
-      ? parsePositiveWholeNumber(selectedHours)
-        ? parsePositiveWholeNumber(selectedHours) * 60
+    const bookingConfig = getBookingConfig(selectedPackage);
+    const bookingSelection = bookingConfig
+      ? calculateBookingSelection(selectedPackage, { selectedHours, selectedVideos })
+      : null;
+    const parsedDuration = bookingConfig
+      ? bookingSelection
+        ? Number(bookingSelection.selectedHours) * 60
         : null
-      : parseDurationMinutes(durationMinutes);
+      : parseDurationMinutes(selectedPackage?.durationMinutes || durationMinutes);
 
     if (!bookingDate || !startTime || !parsedDuration) {
       return res.status(400).json({
@@ -484,20 +694,28 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       startTime,
       durationMinutes,
       selectedHours,
+      selectedVideos,
+      eventType,
       fullName,
       phone,
       email,
-      eventType,
       eventAddress,
       notes,
     } = req.body;
 
     const selectedPackage = await getPackageBySlug(packageSlug);
     const maxHourlyBookingHours = await getMaxHourlyBookingHours();
-    const parsedHours = selectedPackage?.isHourly ? parsePositiveWholeNumber(selectedHours) : null;
-    const parsedDuration = selectedPackage?.isHourly
-      ? parseDurationMinutes(Number(parsedHours) * 60)
-      : parseDurationMinutes(durationMinutes);
+    const bookingConfig = getBookingConfig(selectedPackage);
+    const bookingSelection = bookingConfig
+      ? calculateBookingSelection(selectedPackage, { selectedHours, selectedVideos })
+      : null;
+    const parsedHours = bookingSelection?.selectedHours || null;
+    const parsedDuration = bookingConfig
+      ? bookingSelection
+        ? parseDurationMinutes(Number(bookingSelection.selectedHours) * 60)
+        : null
+      : parseDurationMinutes(selectedPackage?.durationMinutes || durationMinutes);
+    const parsedVideos = bookingSelection?.numberOfVideos || null;
 
     if (
       !selectedPackage ||
@@ -507,20 +725,31 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       !fullName ||
       !phone ||
       !email ||
-      !eventType ||
       !eventAddress
     ) {
       req.session.messages = [{ type: "error", text: "Please complete all required booking fields." }];
       return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
     }
 
-    if (selectedPackage.isHourly) {
-      if (!parsedHours || parsedHours > maxHourlyBookingHours) {
+    if (bookingConfig) {
+      if (!bookingSelection || parsedHours > maxHourlyBookingHours) {
         req.session.messages = [{
           type: "error",
-          text: `Please select a valid number of hours between 1 and ${maxHourlyBookingHours}.`,
+          text: `Please select a valid duration tier for ${selectedPackage?.name || "this package"}.`,
         }];
         return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+      }
+
+      if (bookingConfig.mode === "hourly-booking") {
+        const normalizedEventType = String(eventType || "").trim();
+        const validEventTypes = Array.isArray(bookingConfig.eventTypes) ? bookingConfig.eventTypes : [];
+        if (!normalizedEventType || !validEventTypes.includes(normalizedEventType)) {
+          req.session.messages = [{
+            type: "error",
+            text: "Please choose a valid event type for Hourly Booking.",
+          }];
+          return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+        }
       }
     }
 
@@ -539,10 +768,12 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
     }
 
-    const totalPrice = selectedPackage.isHourly
-      ? selectedPackage.hourlyRate * parsedHours
-      : selectedPackage.price;
+    const totalPrice = bookingSelection?.totalPrice || Number(selectedPackage.price);
     const { depositAmount, remainingBalance } = calculateBookingAmounts(totalPrice);
+    const selectedOptionLabel = bookingSelection?.selectedOptionLabel || null;
+    const selectedOptionPrice = bookingSelection?.selectedOptionPrice || null;
+    const eventTypeValue = bookingConfig?.mode === "hourly-booking" ? String(eventType || "").trim() : "Booking";
+    const hourlyRate = bookingConfig ? selectedOptionPrice : selectedPackage.hourlyRate;
 
     const holdToken = generateReference("HOLD");
     const paymentReference = generateReference("PAY");
@@ -550,16 +781,16 @@ app.post("/bookings/start-payment", async (req, res, next) => {
     await db.query(
       `INSERT INTO booking_holds (
         hold_token, user_id, package_slug, package_name, package_type, package_price,
-        hourly_rate, selected_hours, deposit_amount, remaining_balance,
+        hourly_rate, selected_hours, selected_option_label, selected_option_price, number_of_videos, deposit_amount, remaining_balance,
         booking_date, start_time, end_time, duration_minutes, location,
         event_type, event_address, customer_name, customer_phone, customer_email,
         additional_notes, payment_reference, status, expires_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
-        $7, $8, $9, $10,
-        $11, $12::time, $13::time, $14, $15,
-        $16, $17, $18, $19, $20,
-        $21, $22, 'active', now() + make_interval(mins => $23)
+        $7, $8, $9, $10, $11, $12, $13,
+        $14, $15::time, $16::time, $17, $18,
+        $19, $20, $21, $22, $23,
+        $24, $25, 'active', now() + make_interval(mins => $26)
       )`,
       [
         holdToken,
@@ -568,8 +799,11 @@ app.post("/bookings/start-payment", async (req, res, next) => {
         selectedPackage.name,
         selectedPackage.packageType,
         totalPrice,
-        selectedPackage.isHourly ? selectedPackage.hourlyRate : null,
-        selectedPackage.isHourly ? parsedHours : null,
+        hourlyRate,
+        parsedHours,
+        selectedOptionLabel,
+        selectedOptionPrice,
+        parsedVideos,
         depositAmount,
         remainingBalance,
         bookingDate,
@@ -577,7 +811,7 @@ app.post("/bookings/start-payment", async (req, res, next) => {
         endTime,
         parsedDuration,
         eventAddress,
-        eventType,
+        eventTypeValue || 'Booking',
         eventAddress,
         fullName,
         phone,
@@ -601,12 +835,13 @@ app.post("/bookings/start-payment", async (req, res, next) => {
           startTime,
           durationMinutes: parsedDuration,
           selectedHours: parsedHours,
+          selectedVideos: parsedVideos,
           packageType: selectedPackage.packageType,
           totalPrice,
           depositAmount,
           remainingBalance,
           fullName,
-          eventType,
+          eventType: eventTypeValue || 'Booking',
         },
       });
 
@@ -629,7 +864,12 @@ app.post("/bookings/start-payment", async (req, res, next) => {
           depositAmount,
           remainingBalance,
           selectedHours: parsedHours,
-          hourlyRate: selectedPackage.isHourly ? selectedPackage.hourlyRate : null,
+          selectedOptionLabel,
+          selectedOptionPrice,
+          hourlyRate,
+          numberOfVideos: parsedVideos,
+          videoPrice: bookingSelection?.videoPrice || null,
+          eventType: eventTypeValue || 'Booking',
         },
       });
     } catch (paymentError) {
@@ -777,16 +1017,16 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
       const bookingInsert = await client.query(
         `INSERT INTO bookings (
           user_id, booking_reference, package_slug, package_name, package_type, package_price,
-          hourly_rate, selected_hours, deposit_amount, remaining_balance,
+          hourly_rate, selected_hours, selected_option_label, selected_option_price, number_of_videos, deposit_amount, remaining_balance,
           booking_date, start_time, end_time, duration_minutes, location,
           event_type, event_address, customer_name, customer_phone, customer_email,
           additional_notes, payment_status, status, payment_reference
         ) VALUES (
           $1, $2, $3, $4, $5, $6,
-          $7, $8, $9, $10,
-          $11, $12, $13, $14, $15,
-          $16, $17, $18, $19, $20,
-          $21, 'deposit_paid', 'confirmed', $22
+          $7, $8, $9, $10, $11, $12, $13,
+          $14, $15, $16, $17, $18,
+          $19, $20, $21, $22, $23,
+          $24, 'deposit_paid', 'confirmed', $25
         ) RETURNING booking_reference, package_name, booking_date`,
         [
           hold.user_id,
@@ -797,6 +1037,9 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           hold.package_price,
           hold.hourly_rate,
           hold.selected_hours,
+          hold.selected_option_label,
+          hold.selected_option_price,
+          hold.number_of_videos,
           hold.deposit_amount,
           hold.remaining_balance,
           hold.booking_date,
@@ -823,6 +1066,27 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
 
       await client.query("COMMIT");
       const booking = bookingInsert.rows[0];
+
+      const confirmedBookingForEmail = {
+        booking_reference: booking.booking_reference,
+        package_name: hold.package_name,
+        booking_date: hold.booking_date,
+        start_time: hold.start_time,
+        end_time: hold.end_time,
+        selected_option_label: hold.selected_option_label,
+        number_of_videos: hold.number_of_videos,
+        event_type: hold.event_type,
+        event_address: hold.event_address,
+        customer_name: hold.customer_name,
+        customer_phone: hold.customer_phone,
+        customer_email: hold.customer_email,
+        package_price: hold.package_price,
+        deposit_amount: hold.deposit_amount,
+        remaining_balance: hold.remaining_balance,
+      };
+
+      await sendBookingConfirmationEmails(confirmedBookingForEmail);
+
       return res.render("thank-you", {
         success: true,
         bookingReference: booking.booking_reference,
@@ -911,39 +1175,11 @@ app.get("/admin/bookings", ensureAuthenticated, ensureAdmin, async (req, res, ne
       bookingRules,
       depositPercentage,
       remainingBalancePercentage,
-      hourlyPackageCategories,
       maxHourlyBookingHours: await getMaxHourlyBookingHours(),
     });
   } catch (error) {
     return next(error);
   }
-});
-
-app.post("/admin/hourly-packages", ensureAuthenticated, ensureAdmin, async (req, res) => {
-  try {
-    const { category, hourlyRate, features } = req.body;
-    await createHourlyPackage({
-      category,
-      hourlyRate,
-      features: parseFeatureList(features),
-    });
-    req.session.messages = [{ type: "success", text: "Hourly package created successfully." }];
-  } catch (error) {
-    req.session.messages = [{ type: "error", text: error.message || "Unable to create hourly package." }];
-  }
-
-  return res.redirect("/admin/bookings");
-});
-
-app.post("/admin/settings/hourly-booking-hours", ensureAuthenticated, ensureAdmin, async (req, res) => {
-  try {
-    await setMaxHourlyBookingHours(req.body.maxHourlyBookingHours);
-    req.session.messages = [{ type: "success", text: "Maximum hourly booking hours updated." }];
-  } catch (error) {
-    req.session.messages = [{ type: "error", text: error.message || "Unable to update hourly booking hours." }];
-  }
-
-  return res.redirect("/admin/bookings");
 });
 
 app.get("/admin/dashboard", ensureAuthenticated, ensureAdmin, (req, res) => {
@@ -988,6 +1224,189 @@ app.get("/register", (req,res)=>{
 app.get("/login", (req, res)=>{
     res.render("login")
 })
+
+app.get("/forgot-password", (req, res) => {
+  res.render("forgot-password", { formData: { email: "" } });
+});
+
+app.post(
+  "/forgot-password",
+  authLimiter,
+  body("email").isEmail().withMessage("A valid email is required."),
+  async (req, res, next) => {
+    const genericSuccessMessage = "If an account exists with that email, a reset link has been sent.";
+
+    try {
+      const errors = validationResult(req);
+      const formData = { email: req.body.email || "" };
+
+      if (!errors.isEmpty()) {
+        const messages = errors.array().map((error) => ({ type: "error", text: error.msg }));
+        res.locals.flashMessages = messages;
+        return res.status(400).render("forgot-password", { formData, flashMessages: messages });
+      }
+
+      const email = String(req.body.email || "").trim().toLowerCase();
+      const user = await getUserByEmail(email);
+
+      if (user?.id) {
+        await db.query(
+          `UPDATE password_reset_tokens
+           SET used_at = now()
+           WHERE user_id = $1 AND used_at IS NULL`,
+          [user.id]
+        );
+
+        const rawToken = crypto.randomBytes(32).toString("hex");
+        const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+        const expiresAt = new Date(Date.now() + passwordResetMinutes * 60 * 1000);
+        const resetUrl = `${appBaseUrl}/reset-password?token=${encodeURIComponent(rawToken)}`;
+
+        await createPasswordResetToken(user.id, tokenHash, expiresAt);
+
+        const html = `
+          <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;max-width:640px">
+            <h2 style="margin:0 0 10px">Reset Your Password</h2>
+            <p style="margin:0 0 12px">We received a request to reset your password.</p>
+            <p style="margin:0 0 14px">
+              <a href="${escapeHtml(resetUrl)}" style="display:inline-block;padding:10px 16px;border-radius:999px;background:#1f1b16;color:#fff;text-decoration:none;font-weight:700;">Reset Password</a>
+            </p>
+            <p style="margin:0 0 8px">Or use this link:</p>
+            <p style="margin:0 0 8px;word-break:break-word"><a href="${escapeHtml(resetUrl)}">${escapeHtml(resetUrl)}</a></p>
+            <p style="margin:0">This link expires in ${escapeHtml(passwordResetMinutes)} minutes. If you did not request this, you can ignore this email.</p>
+          </div>
+        `;
+
+        const text = `Reset your password by visiting this link: ${resetUrl}\n\nThis link expires in ${passwordResetMinutes} minutes. If you did not request this, you can ignore this email.`;
+
+        await sendEmailSafe({
+          to: email,
+          subject: "Reset your Reels By Tuzzy password",
+          html,
+          text,
+        });
+      }
+
+      req.session.messages = [{ type: "success", text: genericSuccessMessage }];
+      return res.redirect("/login");
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
+
+app.get("/reset-password", async (req, res, next) => {
+  try {
+    const rawToken = String(req.query.token || "").trim();
+    if (!rawToken) {
+      const messages = [{ type: "error", text: "Reset link is missing or invalid." }];
+      res.locals.flashMessages = messages;
+      return res.status(400).render("reset-password", {
+        token: "",
+        tokenValid: false,
+        flashMessages: messages,
+      });
+    }
+
+    const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+    const tokenRecord = await getActivePasswordResetTokenByHash(tokenHash);
+
+    if (!tokenRecord) {
+      const messages = [{ type: "error", text: "This reset link is invalid or has expired." }];
+      res.locals.flashMessages = messages;
+      return res.status(400).render("reset-password", {
+        token: "",
+        tokenValid: false,
+        flashMessages: messages,
+      });
+    }
+
+    return res.render("reset-password", {
+      token: rawToken,
+      tokenValid: true,
+      flashMessages: [],
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
+app.post(
+  "/reset-password",
+  authLimiter,
+  body("password").isLength({ min: 6 }).withMessage("Password must be at least 6 characters."),
+  async (req, res, next) => {
+    try {
+      const rawToken = String(req.body.token || "").trim();
+      const password = String(req.body.password || "");
+      const confirmPassword =
+        req.body["confirm-password"] ||
+        req.body.confirmPassword ||
+        req.body["confirmPassword"] ||
+        req.body.confirmedpassword ||
+        "";
+
+      if (!rawToken) {
+        const messages = [{ type: "error", text: "Reset token is missing. Please request a new link." }];
+        res.locals.flashMessages = messages;
+        return res.status(400).render("reset-password", {
+          token: "",
+          tokenValid: false,
+          flashMessages: messages,
+        });
+      }
+
+      const validationErrors = validationResult(req);
+      if (!validationErrors.isEmpty()) {
+        const messages = validationErrors.array().map((error) => ({ type: "error", text: error.msg }));
+        res.locals.flashMessages = messages;
+        return res.status(400).render("reset-password", {
+          token: rawToken,
+          tokenValid: true,
+          flashMessages: messages,
+        });
+      }
+
+      if (confirmPassword !== password) {
+        const messages = [{ type: "error", text: "Passwords do not match." }];
+        res.locals.flashMessages = messages;
+        return res.status(400).render("reset-password", {
+          token: rawToken,
+          tokenValid: true,
+          flashMessages: messages,
+        });
+      }
+
+      const tokenHash = crypto.createHash("sha256").update(rawToken).digest("hex");
+      const tokenRecord = await getActivePasswordResetTokenByHash(tokenHash);
+      if (!tokenRecord) {
+        const messages = [{ type: "error", text: "This reset link is invalid or has expired." }];
+        res.locals.flashMessages = messages;
+        return res.status(400).render("reset-password", {
+          token: "",
+          tokenValid: false,
+          flashMessages: messages,
+        });
+      }
+
+      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      await updateUserPasswordById(tokenRecord.user_id, hashedPassword);
+      await markPasswordResetTokenUsed(tokenRecord.id);
+
+      await db.query(
+        `UPDATE password_reset_tokens
+         SET used_at = now()
+         WHERE user_id = $1 AND used_at IS NULL`,
+        [tokenRecord.user_id]
+      );
+
+      req.session.messages = [{ type: "success", text: "Password updated successfully. You can sign in now." }];
+      return res.redirect("/login");
+    } catch (error) {
+      return next(error);
+    }
+  }
+);
 
 
 app.post("/login", authLimiter, (req, res, next) => {

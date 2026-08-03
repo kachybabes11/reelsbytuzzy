@@ -28,14 +28,17 @@
 						<span></span>
 					</button>
 					<a class="brand" href="/">
-						<span class="brand-mark">RB</span>
-						<span class="brand-text">Reelsbytuzzy</span>
+						<div class="brand-mark">
+							<img src="/assets/brand-logo.png" alt="Reelsbytuzzy" />
+						</div>
+						
 					</a>
 				</div>
 
 				<div class="nav-links" id="site-nav-links">
 					<a href="/">Home</a>
 					<a href="/packages">Packages</a>
+					<a href="/privacy-policy">Privacy Policy</a>
 					<% if (currentUser && (currentUser.is_admin || currentUser.role === 'admin')) { %>
 						<a href="/admin/bookings">Admin</a>
 					<% } %>
@@ -83,6 +86,15 @@
 
 				overlay.addEventListener('click', closeNav);
 				navLinks.querySelectorAll('a').forEach((link) => link.addEventListener('click', closeNav));
+
+				const closeOnPageTouch = (event) => {
+					if (!document.body.classList.contains('nav-open')) return;
+					if (toggle.contains(event.target)) return;
+					closeNav();
+				};
+
+				document.addEventListener('click', closeOnPageTouch);
+				document.addEventListener('touchstart', closeOnPageTouch, { passive: true });
 
 				document.addEventListener('keydown', (event) => {
 					if (event.key === 'Escape') {

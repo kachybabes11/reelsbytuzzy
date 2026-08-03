@@ -2,144 +2,347 @@
 <%- include('./partials/messages.ejs') %>
 
 <section class="section-shell booking-shell" data-hold-minutes="<%= holdMinutes %>">
-	<div class="booking-intro">
-		<span class="eyebrow">Guided Booking</span>
-		<h1 class="page-title">Book Your Shoot In Minutes</h1>
-		<p class="page-subtitle">A premium step-by-step flow from package selection to secure payment. Your selected slot is held while you complete deposit payment.</p>
-		<p class="page-subtitle">Your selected slot is held for <strong><%= holdMinutes %> minutes</strong> while you complete secure payment.</p>
-	</div>
+	<header class="booking-intro">
+		<span class="eyebrow">Luxury Booking</span>
+		<h1 class="page-title">Book Your Shoot</h1>
+		<p class="page-subtitle">A clean 4-step booking flow with secure checkout. Your selected time slot is held for <strong><%= holdMinutes %> minutes</strong> after checkout starts.</p>
+	</header>
 
-	<%- include('./partials/booking-rules.ejs') %>
-
-	<ol class="booking-progress" id="booking-progress">
-		<li class="active">1. Select Package</li>
-		<li>2. Schedule</li>
-		<li>3. Client Info</li>
-		<li>4. Summary</li>
-		<li>5. Payment</li>
-	</ol>
-
-	<form id="booking-form" method="post" action="/bookings/start-payment" novalidate>
+	<form id="booking-form" class="booking-layout" method="post" action="/bookings/start-payment" novalidate>
 		<input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 		<input type="hidden" id="packageSlug" name="packageSlug" value="<%= selectedPackage?.slug || '' %>" />
-		<div id="booking-data" hidden data-packages="<%= encodeURIComponent(JSON.stringify(packages.map((pkg) => ({ slug: pkg.slug, price: pkg.price, isHourly: Boolean(pkg.isHourly), hourlyRate: pkg.hourlyRate || pkg.price, name: pkg.name, category: pkg.category, description: pkg.description })))) %>" data-max-hours="<%= maxHourlyBookingHours %>"></div>
+		<input type="hidden" id="durationMinutes" name="durationMinutes" value="" />
+		<input type="hidden" id="selectedOptionLabel" name="selectedOptionLabel" value="" />
+		<input type="hidden" id="selectedOptionPrice" name="selectedOptionPrice" value="" />
+		<input type="hidden" id="eventType" name="eventType" value="Booking" />
+		<input type="hidden" id="selectedVideosHidden" name="selectedVideos" value="" />
+		<div id="booking-data" hidden data-packages="<%= encodeURIComponent(JSON.stringify(packages.map((pkg) => ({ slug: pkg.slug, price: pkg.price, isHourly: Boolean(pkg.isHourly), hourlyRate: pkg.hourlyRate || pkg.price, name: pkg.name, description: pkg.description, durationMinutes: pkg.durationMinutes || null, bookingConfig: pkg.bookingConfig || null })))) %>" data-max-hours="<%= maxHourlyBookingHours %>"></div>
 
-		<div class="booking-step active" data-step="1">
-			<div class="booking-grid">
-				<% packages.forEach((pkg) => { %>
-					<article class="booking-package-card <%= selectedPackage?.slug === pkg.slug ? 'selected' : '' %>" data-pkg-card="<%= pkg.slug %>">
-						<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %>" />
-						<div>
-							<p class="booking-package-name"><%= pkg.name %></p>
-							<p class="booking-package-desc"><%= pkg.isHourly ? 'Hourly package' : pkg.description %></p>
-							<p class="booking-package-price">
-								<% if (pkg.isHourly) { %>
-									₦<%= Number(pkg.price).toLocaleString() %>/hour
-								<% } else { %>
-									₦<%= pkg.price.toLocaleString() %>
-								<% } %>
-							</p>
-						</div>
-						<button class="button button-primary js-select-package" type="button" data-package-slug="<%= pkg.slug %>">Book This Package</button>
+		<div class="booking-main">
+			<div class="booking-progress-wrap">
+				<div class="booking-progress-dots" id="booking-progress" aria-label="Booking progress">
+					<span class="booking-dot is-active" data-progress-dot="1" aria-hidden="true"></span>
+					<span class="booking-dot" data-progress-dot="2" aria-hidden="true"></span>
+					<span class="booking-dot" data-progress-dot="3" aria-hidden="true"></span>
+					<span class="booking-dot" data-progress-dot="4" aria-hidden="true"></span>
+				</div>
+				<p class="booking-step-meta" id="booking-step-meta">Step 1 of 4</p>
+				<h2 class="booking-step-title" id="booking-step-title">Select Package</h2>
+			</div>
+
+			<section class="booking-step active" data-step="1">
+				<div class="booking-grid">
+					<% packages.forEach((pkg) => { %>
+						<article class="booking-package-card <%= selectedPackage?.slug === pkg.slug ? 'selected' : '' %>" data-pkg-card="<%= pkg.slug %>">
+							<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %>" />
+							<div class="booking-package-copy">
+								<p class="booking-package-name"><%= pkg.name %></p>
+								<p class="booking-package-desc"><%= pkg.bookingConfig?.mode === 'hourly-booking' ? 'Choose a duration tier, add videos, and book the same premium flow.' : (pkg.bookingConfig?.mode === 'tiered' ? 'Select the tier that fits your coverage window.' : pkg.description) %></p>
+								<p class="booking-package-price">
+									<% if (pkg.bookingConfig?.mode === 'hourly-booking') { %>
+										From ₦<%= Number(pkg.price).toLocaleString() %> + ₦70,000/video
+									<% } else if (pkg.bookingConfig?.mode === 'tiered') { %>
+										From ₦<%= Number(pkg.price).toLocaleString() %>
+									<% } else if (pkg.isHourly) { %>
+										₦<%= Number(pkg.price).toLocaleString() %>
+									<% } else { %>
+										₦<%= Number(pkg.price).toLocaleString() %>
+									<% } %>
+								</p>
+							</div>
+							<button class="button button-primary js-select-package" type="button" data-package-slug="<%= pkg.slug %>">Select Package</button>
+						</article>
+					<% }) %>
+				</div>
+			</section>
+
+			<section class="booking-step" data-step="2">
+				<div class="booking-panel booking-schedule-panel">
+					<div class="booking-panel-copy booking-schedule-copy">
+						<p class="booking-step-eyebrow">Schedule Details</p>
+						<h3>Choose your date and the package options that apply.</h3>
+						<p>Hourly Booking shows the event type, duration tier, and number of videos. Zoom Coverage shows a single tier selector. Other packages stay simple.</p>
+					</div>
+					<div class="booking-fields-grid booking-schedule-grid">
+						<label>Date
+							<input required type="date" id="bookingDate" name="bookingDate" />
+						</label>
+						<label>Start Time
+							<input required type="time" id="startTime" name="startTime" />
+						</label>
+						<label class="booking-dynamic-field" id="eventTypeField" hidden>Event Type
+							<select id="eventTypeSelect" disabled>
+								<option value="">Select Event Type</option>
+							</select>
+						</label>
+						<label class="booking-dynamic-field" id="selectedHoursField" hidden>Coverage Tier
+							<select id="selectedHours" name="selectedHours" disabled>
+								<option value="">Select Coverage Tier</option>
+							</select>
+						</label>
+						<label class="booking-dynamic-field" id="selectedVideosField" hidden>Number of Videos
+							<select id="selectedVideos" disabled>
+								<option value="">Select Number of Videos</option>
+							</select>
+						</label>
+					</div>
+				</div>
+
+				<div class="booking-inline-actions">
+					<button class="button button-primary" id="check-availability" type="button">Check Availability</button>
+					<span id="availability-message" class="booking-status" aria-live="polite"></span>
+				</div>
+			</section>
+
+			<section class="booking-step" data-step="3">
+				<div class="booking-panel">
+					<div class="booking-fields-grid client-fields-grid">
+						<label>Full Name
+							<input required type="text" id="fullName" name="fullName" autocomplete="name" />
+						</label>
+						<label>Phone Number
+							<input required type="tel" id="phone" name="phone" autocomplete="tel" />
+						</label>
+						<label>Email
+							<input required type="email" id="email" name="email" autocomplete="email" />
+						</label>
+						<label class="full">Event Address
+							<textarea required id="eventAddress" name="eventAddress"></textarea>
+						</label>
+						<label class="full">Notes (optional)
+							<textarea id="notes" name="notes"></textarea>
+						</label>
+					</div>
+				</div>
+				<div class="booking-inline-actions">
+					<button class="button button-outline" type="button" id="back-to-schedule">Back</button>
+					<button class="button button-primary" type="button" id="to-summary">Continue To Summary</button>
+				</div>
+			</section>
+
+			<section class="booking-step" data-step="4">
+				<div class="booking-panel booking-summary-panel">
+					<h3>Summary</h3>
+					<div id="booking-summary"></div>
+					<% if (!paystackEnabled) { %>
+						<p class="booking-status error">Paystack keys are missing in environment variables. Add PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY.</p>
+					<% } %>
+				</div>
+				<div class="booking-inline-actions">
+					<button class="button button-outline" type="button" id="edit-booking">Edit Booking</button>
+					<button class="button button-primary" type="submit" <%= paystackEnabled ? '' : 'disabled' %>>Continue To Secure Checkout</button>
+				</div>
+			</section>
+		</div>
+	</form>
+
+	<div class="booking-footer-rules">
+		<details class="booking-rules-card" id="booking-rules-card" open>
+			<summary>
+				<span>Booking Rules</span>
+				<span class="booking-rules-hint">Tap to collapse</span>
+			</summary>
+			<div class="booking-rules-list">
+				<% bookingRules.forEach((rule) => { %>
+					<article class="booking-rule-item">
+						<h3><%= rule.title %></h3>
+						<p><%= rule.body %></p>
 					</article>
 				<% }) %>
 			</div>
-		</div>
-
-		<div class="booking-step" data-step="2">
-			<div class="booking-fields-grid">
-				<label>Date<input required type="date" id="bookingDate" name="bookingDate" /></label>
-				<label>Start Time<input required type="time" id="startTime" name="startTime" /></label>
-				<label id="durationField">Duration (minutes)
-					<select id="durationMinutes" name="durationMinutes" required>
-						<option value="">Select</option>
-						<option value="60">1 hour</option>
-						<option value="120">2 hours</option>
-						<option value="180">3 hours</option>
-						<option value="240">4 hours</option>
-						<option value="360">6 hours</option>
-					</select>
-				</label>
-				<label class="hourly-hours-field" id="hourlyHoursField" hidden>Hours Required
-					<input type="number" id="selectedHours" name="selectedHours" min="1" max="<%= maxHourlyBookingHours %>" step="1" />
-				</label>
-				<div class="booking-pricing-breakdown" id="booking-pricing-breakdown"></div>
-			</div>
-			<div class="booking-inline-actions">
-				<button class="button button-primary" id="check-availability" type="button">Check Availability</button>
-				<span id="availability-message" class="booking-status" aria-live="polite"></span>
-			</div>
-		</div>
-
-		<div class="booking-step" data-step="3">
-			<div class="booking-fields-grid floating-grid">
-				<label class="float-field"><input required type="text" id="fullName" name="fullName" placeholder=" " /><span>Full Name</span></label>
-				<label class="float-field"><input required type="tel" id="phone" name="phone" placeholder=" " /><span>Phone Number</span></label>
-				<label class="float-field"><input required type="email" id="email" name="email" placeholder=" " /><span>Email Address</span></label>
-				<label class="float-field"><input required type="text" id="eventType" name="eventType" placeholder=" " /><span>Event Type</span></label>
-				<label class="float-field full"><textarea required id="eventAddress" name="eventAddress" placeholder=" "></textarea><span>Event Address</span></label>
-				<label class="float-field full"><textarea id="notes" name="notes" placeholder=" "></textarea><span>Additional Notes (Optional)</span></label>
-			</div>
-			<div class="booking-inline-actions">
-				<button class="button button-primary" type="button" id="to-summary">Continue To Summary</button>
-			</div>
-		</div>
-
-		<div class="booking-step" data-step="4">
-			<div class="booking-summary-card" id="booking-summary"></div>
-			<div class="booking-inline-actions">
-				<button class="button button-outline" type="button" id="edit-booking">Edit Booking</button>
-				<button class="button button-primary" type="button" id="to-payment">Proceed To Payment</button>
-			</div>
-		</div>
-
-		<div class="booking-step" data-step="5">
-			<div class="booking-payment-card">
-				<span class="eyebrow">Secure Payment</span>
-				<h2>Review the deposit, then continue to checkout.</h2>
-				<p>Your selected slot will be reserved for <strong><%= holdMinutes %> minutes</strong> after checkout starts. Pay the 70% deposit to confirm the date.</p>
-				<div class="booking-deposit-note">
-					<p><strong>Deposit:</strong> 70% due now.</p>
-					<p><strong>Balance:</strong> 30% before final delivery.</p>
-				</div>
-				<% if (!paystackEnabled) { %>
-					<p class="booking-status error">Paystack keys are missing in environment variables. Add PAYSTACK_PUBLIC_KEY and PAYSTACK_SECRET_KEY.</p>
-				<% } %>
-			</div>
-			<div class="booking-inline-actions">
-				<button class="button button-outline" type="button" id="back-to-summary">Back</button>
-				<button class="button button-primary" type="submit" <%= paystackEnabled ? '' : 'disabled' %>>Continue To Secure Checkout</button>
-			</div>
-		</div>
-	</form>
+		</details>
+	</div>
 </section>
 
 <script>
 (() => {
 	const form = document.getElementById('booking-form');
 	const steps = Array.from(document.querySelectorAll('.booking-step'));
-	const progressItems = Array.from(document.querySelectorAll('#booking-progress li'));
+	const progressDots = Array.from(document.querySelectorAll('[data-progress-dot]'));
 	const packageSlugInput = document.getElementById('packageSlug');
-	const bookingPricingBreakdown = document.getElementById('booking-pricing-breakdown');
-	const hourlyHoursField = document.getElementById('hourlyHoursField');
-	const durationField = document.getElementById('durationField');
-	const selectedHoursInput = document.getElementById('selectedHours');
+	const durationMinutesInput = document.getElementById('durationMinutes');
+	const summaryCard = document.getElementById('booking-summary');
+	const stepMeta = document.getElementById('booking-step-meta');
+	const stepTitle = document.getElementById('booking-step-title');
+	const rulesCard = document.getElementById('booking-rules-card');
 	const availabilityMessage = document.getElementById('availability-message');
 	const bookingData = document.getElementById('booking-data');
+	const selectedOptionLabelInput = document.getElementById('selectedOptionLabel');
+	const selectedOptionPriceInput = document.getElementById('selectedOptionPrice');
+	const eventTypeHiddenInput = document.getElementById('eventType');
+	const selectedVideosHiddenInput = document.getElementById('selectedVideosHidden');
+	const eventTypeField = document.getElementById('eventTypeField');
+	const durationField = document.getElementById('selectedHoursField');
+	const videosField = document.getElementById('selectedVideosField');
+	const eventTypeSelect = document.getElementById('eventTypeSelect');
+	const selectedHoursInput = document.getElementById('selectedHours');
+	const selectedVideosInput = document.getElementById('selectedVideos');
 	const selectedPackageData = JSON.parse(decodeURIComponent(bookingData.dataset.packages || '[]'));
 	const maxHourlyBookingHours = Number(bookingData.dataset.maxHours || 12);
+	const stepTitles = {
+		1: 'Select Package',
+		2: 'Schedule',
+		3: 'Client Info',
+		4: 'Summary',
+	};
 	let currentStep = packageSlugInput.value ? 2 : 1;
 	let availabilityPassed = false;
 	let activePackage = selectedPackageData.find((item) => item.slug === packageSlugInput.value) || null;
+
+	function getBookingConfig() {
+		return activePackage?.bookingConfig || null;
+	}
+
+	function formatDisplayDate(dateValue) {
+		if (!dateValue) return '--';
+		const [year, month, day] = String(dateValue).split('-');
+		if (!year || !month || !day) return '--';
+		return `${day}/${month}/${year}`;
+	}
+
+	function formatCurrency(value) {
+		return `₦${Number(value || 0).toLocaleString()}`;
+	}
+
+	function populateSelect(select, options, placeholderLabel) {
+		if (!select) return;
+		const currentValue = select.value;
+		const optionMarkup = [`<option value="">${placeholderLabel}</option>`];
+		options.forEach((option) => {
+			optionMarkup.push(`<option value="${String(option.value)}">${option.label}</option>`);
+		});
+		select.innerHTML = optionMarkup.join('');
+		if (currentValue && options.some((option) => String(option.value) === currentValue)) {
+			select.value = currentValue;
+		} else if (options.length) {
+			select.value = String(options[0].value);
+		}
+	}
+
+	function getSelection() {
+		const config = getBookingConfig();
+		if (!config) {
+			return {
+				totalPrice: Number(activePackage?.price || 0),
+				selectedOptionLabel: null,
+				selectedOptionPrice: null,
+				selectedHours: null,
+				numberOfVideos: null,
+				videoPrice: null,
+				eventType: 'Booking',
+			};
+		}
+
+		const selectedHours = Number(selectedHoursInput?.value || 0);
+		const selectedOption = (config.durationOptions || []).find((option) => Number(option.value) === selectedHours) || null;
+		if (!selectedOption) return null;
+
+		const selectedVideos = config.mode === 'hourly-booking' ? Number(selectedVideosInput?.value || 0) : null;
+		if (config.mode === 'hourly-booking') {
+			if (!Number.isInteger(selectedVideos) || !config.videoOptions.includes(selectedVideos)) {
+				return null;
+			}
+		}
+
+		const selectedOptionPrice = Number(selectedOption.price || 0);
+		const videoPrice = config.mode === 'hourly-booking' ? Number(config.videoPrice || 0) : null;
+		const totalPrice = selectedOptionPrice + (config.mode === 'hourly-booking' ? selectedVideos * videoPrice : 0);
+
+		return {
+			totalPrice,
+			selectedOptionLabel: selectedOption.label,
+			selectedOptionPrice,
+			selectedHours: selectedHours,
+			numberOfVideos: selectedVideos,
+			videoPrice,
+			eventType: config.mode === 'hourly-booking' ? String(eventTypeSelect?.value || '').trim() : 'Booking',
+		};
+	}
+
+	function updateDerivedInputs() {
+		const config = getBookingConfig();
+		const selection = getSelection();
+		const durationMinutes = selection?.selectedHours ? Number(selection.selectedHours) * 60 : Number(activePackage?.durationMinutes || 0);
+		durationMinutesInput.value = Number.isInteger(durationMinutes) && durationMinutes > 0 ? String(durationMinutes) : '';
+		selectedOptionLabelInput.value = selection?.selectedOptionLabel || '';
+		selectedOptionPriceInput.value = selection?.selectedOptionPrice || '';
+		selectedVideosHiddenInput.value = selection?.numberOfVideos || '';
+		eventTypeHiddenInput.value = config?.mode === 'hourly-booking' ? String(eventTypeSelect?.value || '').trim() : 'Booking';
+	}
+
+	function syncDynamicFields() {
+		const config = getBookingConfig();
+		const isHourlyBooking = config?.mode === 'hourly-booking';
+		const isTieredPackage = config?.mode === 'tiered';
+		const hasDurationOptions = Array.isArray(config?.durationOptions) && config.durationOptions.length > 0;
+
+		if (eventTypeField) {
+			eventTypeField.hidden = !isHourlyBooking;
+			eventTypeField.style.display = isHourlyBooking ? '' : 'none';
+			eventTypeSelect.disabled = !isHourlyBooking;
+			eventTypeSelect.required = isHourlyBooking;
+			if (isHourlyBooking) {
+				populateSelect(eventTypeSelect, (config.eventTypes || []).map((label) => ({ label, value: label })), 'Select Event Type');
+			} else {
+				eventTypeSelect.innerHTML = '<option value="Booking">Booking</option>';
+				eventTypeSelect.value = 'Booking';
+			}
+		}
+
+		if (durationField) {
+			durationField.hidden = !hasDurationOptions;
+			durationField.style.display = hasDurationOptions ? '' : 'none';
+			selectedHoursInput.disabled = !hasDurationOptions;
+			selectedHoursInput.required = hasDurationOptions;
+			if (hasDurationOptions) {
+				populateSelect(selectedHoursInput, config.durationOptions, 'Select Coverage Tier');
+			} else {
+				selectedHoursInput.innerHTML = '<option value="">Select Coverage Tier</option>';
+				selectedHoursInput.value = '';
+			}
+		}
+
+		if (videosField) {
+			videosField.hidden = !isHourlyBooking;
+			videosField.style.display = isHourlyBooking ? '' : 'none';
+			selectedVideosInput.disabled = !isHourlyBooking;
+			selectedVideosInput.required = isHourlyBooking;
+			if (isHourlyBooking) {
+				populateSelect(selectedVideosInput, (config.videoOptions || []).map((count) => ({ label: String(count), value: count })), 'Select Number of Videos');
+			} else {
+				selectedVideosInput.innerHTML = '<option value="">Select Number of Videos</option>';
+				selectedVideosInput.value = '';
+			}
+		}
+
+		if (!hasDurationOptions) {
+			selectedHoursInput.value = '';
+		}
+		if (!isHourlyBooking) {
+			selectedVideosInput.value = '';
+			eventTypeSelect.value = 'Booking';
+		}
+
+		if (isTieredPackage || isHourlyBooking) {
+			selectedHoursInput.required = true;
+		}
+	}
 
 	function updateProgress() {
 		steps.forEach((step) => {
 			const isActive = Number(step.dataset.step) === currentStep;
 			step.classList.toggle('active', isActive);
 		});
-		progressItems.forEach((item, index) => {
-			item.classList.toggle('active', index + 1 <= currentStep);
+		progressDots.forEach((dot) => {
+			const dotStep = Number(dot.dataset.progressDot);
+			dot.classList.toggle('is-active', dotStep === currentStep);
+			dot.classList.toggle('is-complete', dotStep < currentStep);
 		});
+		stepMeta.textContent = `Step ${currentStep} of 4`;
+		stepTitle.textContent = stepTitles[currentStep] || 'Booking';
+		if (rulesCard) {
+			rulesCard.hidden = currentStep !== 2;
+		}
 	}
 
 	function selectPackage(slug) {
@@ -148,12 +351,11 @@
 		document.querySelectorAll('[data-pkg-card]').forEach((card) => {
 			card.classList.toggle('selected', card.dataset.pkgCard === slug);
 		});
-		hourlyHoursField.hidden = !activePackage?.isHourly;
-		if (!activePackage?.isHourly) {
-			selectedHoursInput.value = '';
-		}
-			durationField.hidden = Boolean(activePackage?.isHourly);
-		renderPricingBreakdown();
+		syncDynamicFields();
+		availabilityPassed = false;
+		availabilityMessage.textContent = '';
+		updateDerivedInputs();
+		renderSummary();
 		currentStep = 2;
 		updateProgress();
 	}
@@ -162,61 +364,74 @@
 		button.addEventListener('click', () => selectPackage(button.dataset.packageSlug));
 	});
 
+	syncDynamicFields();
+
 	function requiredScheduleReady() {
 		const baseReady = document.getElementById('bookingDate').value
 			&& document.getElementById('startTime').value
 			&& Boolean(activePackage);
 		if (!baseReady) return false;
-		if (activePackage?.isHourly) {
-			const hoursValue = Number(selectedHoursInput.value);
-			return Number.isInteger(hoursValue) && hoursValue >= 1 && hoursValue <= maxHourlyBookingHours;
+		if (getBookingConfig()) {
+			const selection = getSelection();
+			return Boolean(selection && Number.isInteger(Number(selection.selectedHours)));
 		}
-		return Boolean(document.getElementById('durationMinutes').value);
+		return Number.isInteger(Number(activePackage?.durationMinutes || 0)) && Number(activePackage.durationMinutes) > 0;
 	}
 
 	function getSelectedDurationMinutes() {
-		if (activePackage?.isHourly) {
-			const hoursValue = Number(selectedHoursInput.value || 0);
-			return Number.isInteger(hoursValue) && hoursValue > 0 ? hoursValue * 60 : null;
+		const selection = getSelection();
+		if (selection?.selectedHours) {
+			return Number(selection.selectedHours) * 60;
 		}
-		return Number(document.getElementById('durationMinutes').value || 0) || null;
+		const packageDuration = Number(activePackage?.durationMinutes || 0);
+		return Number.isInteger(packageDuration) && packageDuration > 0 ? packageDuration : null;
 	}
 
-	function getMoneyBreakdown(total) {
-		const deposit = Math.round(total * 0.7);
-		return {
-			total,
-			deposit,
-			balance: total - deposit,
-		};
-	}
-
-	function renderPricingBreakdown() {
-		if (!bookingPricingBreakdown) return;
+	function renderSummary() {
+		if (!summaryCard) return;
 		if (!activePackage) {
-			bookingPricingBreakdown.innerHTML = '';
-			return;
-		}
-
-		if (activePackage.isHourly) {
-			const hoursValue = Number(selectedHoursInput.value || 1);
-			const safeHours = Number.isInteger(hoursValue) && hoursValue >= 1 ? Math.min(hoursValue, maxHourlyBookingHours) : 1;
-			const pricing = getMoneyBreakdown(activePackage.hourlyRate * safeHours);
-			bookingPricingBreakdown.innerHTML = `
-				<div class="pricing-line"><span>Hourly Rate</span><strong>₦${activePackage.hourlyRate.toLocaleString()}/hour</strong></div>
-				<div class="pricing-line"><span>Hours Selected</span><strong>${safeHours}</strong></div>
-				<div class="pricing-line total"><span>Total</span><strong>₦${pricing.total.toLocaleString()}</strong></div>
-				<div class="pricing-line"><span>Deposit (70%)</span><strong>₦${pricing.deposit.toLocaleString()}</strong></div>
-				<div class="pricing-line"><span>Balance (30%)</span><strong>₦${pricing.balance.toLocaleString()}</strong></div>
+			summaryCard.innerHTML = `
+				<h3>Booking Summary</h3>
+				<p class="summary-empty">Select a package to begin.</p>
 			`;
 			return;
 		}
 
-		const pricing = getMoneyBreakdown(activePackage.price);
-		bookingPricingBreakdown.innerHTML = `
-			<div class="pricing-line"><span>Package Price</span><strong>₦${pricing.total.toLocaleString()}</strong></div>
-			<div class="pricing-line"><span>Deposit (70%)</span><strong>₦${pricing.deposit.toLocaleString()}</strong></div>
-			<div class="pricing-line"><span>Balance (30%)</span><strong>₦${pricing.balance.toLocaleString()}</strong></div>
+		const selection = getSelection();
+		if (!selection && getBookingConfig()) {
+			summaryCard.innerHTML = `
+				<h3>Booking Summary</h3>
+				<p class="summary-empty">Choose the package options to see your price.</p>
+			`;
+			return;
+		}
+
+		const total = selection?.totalPrice ?? Number(activePackage.price);
+		const deposit = Math.round(total * 0.7);
+		const balance = total - deposit;
+
+		summaryCard.innerHTML = `
+			<h3>Booking Summary</h3>
+			<div class="summary-group">
+				<div class="summary-line"><span>Package</span><strong>${activePackage.name}</strong></div>
+				<div class="summary-line"><span>Date</span><strong>${formatDisplayDate(document.getElementById('bookingDate').value)}</strong></div>
+				<div class="summary-line"><span>Time</span><strong>${document.getElementById('startTime').value || '--'}</strong></div>
+				${selection?.selectedOptionLabel ? `<div class="summary-line"><span>Coverage Tier</span><strong>${selection.selectedOptionLabel}</strong></div>` : ''}
+				${selection?.eventType && selection.eventType !== 'Booking' ? `<div class="summary-line"><span>Event Type</span><strong>${selection.eventType}</strong></div>` : ''}
+				${selection?.numberOfVideos ? `<div class="summary-line"><span>Number of Videos</span><strong>${selection.numberOfVideos}</strong></div>` : ''}
+			</div>
+			<div class="summary-group">
+				<div class="summary-line"><span>Total Cost</span><strong>${formatCurrency(total)}</strong></div>
+				<div class="summary-line"><span>Amount Due Now</span><strong>${formatCurrency(deposit)}</strong></div>
+				<div class="summary-line"><span>Balance</span><strong>${formatCurrency(balance)}</strong></div>
+			</div>
+			<div class="summary-group">
+				<p class="summary-subtitle">Customer Information</p>
+				<div class="summary-line"><span>Full Name</span><strong>${document.getElementById('fullName').value || '--'}</strong></div>
+				<div class="summary-line"><span>Phone Number</span><strong>${document.getElementById('phone').value || '--'}</strong></div>
+				<div class="summary-line"><span>Email</span><strong>${document.getElementById('email').value || '--'}</strong></div>
+				<div class="summary-line"><span>Event Address</span><strong>${document.getElementById('eventAddress').value || '--'}</strong></div>
+			</div>
 		`;
 	}
 
@@ -236,6 +451,7 @@
 			startTime: document.getElementById('startTime').value,
 			durationMinutes: getSelectedDurationMinutes(),
 			selectedHours: selectedHoursInput.value,
+			selectedVideos: selectedVideosInput.value,
 			packageSlug: packageSlugInput.value,
 			_csrf: document.querySelector('input[name="_csrf"]').value,
 		};
@@ -246,7 +462,7 @@
 				credentials: 'same-origin',
 				headers: {
 					'Content-Type': 'application/json',
-					'CSRF-Token': document.querySelector('input[name="_csrf"]').value
+					'CSRF-Token': document.querySelector('input[name="_csrf"]').value,
 				},
 				body: JSON.stringify(payload),
 			});
@@ -267,6 +483,8 @@
 			availabilityPassed = true;
 			availabilityMessage.className = 'booking-status success';
 			availabilityMessage.textContent = data.message;
+			updateDerivedInputs();
+			renderSummary();
 			setTimeout(() => {
 				currentStep = 3;
 				updateProgress();
@@ -286,65 +504,56 @@
 			return;
 		}
 
-		const requiredFields = ['fullName', 'phone', 'email', 'eventType', 'eventAddress'];
+		const requiredFields = ['fullName', 'phone', 'email', 'eventAddress'];
 		const invalid = requiredFields.some((id) => !document.getElementById(id).value.trim());
 		if (invalid) {
 			alert('Please complete all required client details.');
 			return;
 		}
 
-		const selectedCard = document.querySelector(`[data-pkg-card="${packageSlugInput.value}"]`);
-		const packageName = selectedCard ? selectedCard.querySelector('.booking-package-name').textContent : 'Selected Package';
-		const packagePrice = selectedCard ? selectedCard.querySelector('.booking-package-price').textContent : '';
-		const selectedHours = activePackage?.isHourly ? Number(selectedHoursInput.value || 1) : null;
-		const pricing = activePackage?.isHourly
-			? getMoneyBreakdown(activePackage.hourlyRate * selectedHours)
-			: getMoneyBreakdown(Number((packagePrice || '').replace(/[^\d]/g, '') || 0));
-
-		document.getElementById('booking-summary').innerHTML = `
-			<h2>Booking Summary</h2>
-			<ul>
-				<li><span>Package</span><strong>${packageName}</strong></li>
-				<li><span>Package Price</span><strong>${packagePrice}</strong></li>
-				${activePackage?.isHourly ? `<li><span>Hours Selected</span><strong>${selectedHours}</strong></li>` : ''}
-				<li><span>Total</span><strong>₦${pricing.total.toLocaleString()}</strong></li>
-				<li><span>Deposit (70%)</span><strong>₦${pricing.deposit.toLocaleString()}</strong></li>
-				<li><span>Balance (30%)</span><strong>₦${pricing.balance.toLocaleString()}</strong></li>
-				<li><span>Event Date</span><strong>${document.getElementById('bookingDate').value}</strong></li>
-				<li><span>Event Time</span><strong>${document.getElementById('startTime').value}</strong></li>
-				<li><span>Duration</span><strong>${getSelectedDurationMinutes()} mins</strong></li>
-				<li><span>Client</span><strong>${document.getElementById('fullName').value}</strong></li>
-				<li><span>Phone</span><strong>${document.getElementById('phone').value}</strong></li>
-				<li><span>Email</span><strong>${document.getElementById('email').value}</strong></li>
-			</ul>
-		`;
-
+		updateDerivedInputs();
+		renderSummary();
 		currentStep = 4;
 		updateProgress();
 	});
 
-	selectedHoursInput?.addEventListener('input', renderPricingBreakdown);
+	[selectedHoursInput, selectedVideosInput, eventTypeSelect].forEach((input) => {
+		if (!input) return;
+		input.addEventListener('change', () => {
+			availabilityPassed = false;
+			availabilityMessage.textContent = '';
+			updateDerivedInputs();
+			renderSummary();
+		});
+	});
+
+	['bookingDate', 'startTime', 'fullName', 'phone', 'email', 'eventAddress', 'notes'].forEach((id) => {
+		const input = document.getElementById(id);
+		if (!input) return;
+		input.addEventListener('input', () => {
+			if (id === 'bookingDate' || id === 'startTime') {
+				availabilityPassed = false;
+				availabilityMessage.textContent = '';
+			}
+			renderSummary();
+		});
+	});
 
 	if (packageSlugInput.value) {
 		selectPackage(packageSlugInput.value);
 	} else {
-		durationField.hidden = false;
-		hourlyHoursField.hidden = true;
-		renderPricingBreakdown();
+		syncDynamicFields();
+		updateDerivedInputs();
+		renderSummary();
 	}
 
-	document.getElementById('edit-booking').addEventListener('click', () => {
+	document.getElementById('back-to-schedule').addEventListener('click', () => {
 		currentStep = 2;
 		updateProgress();
 	});
 
-	document.getElementById('to-payment').addEventListener('click', () => {
-		currentStep = 5;
-		updateProgress();
-	});
-
-	document.getElementById('back-to-summary').addEventListener('click', () => {
-		currentStep = 4;
+	document.getElementById('edit-booking').addEventListener('click', () => {
+		currentStep = 2;
 		updateProgress();
 	});
 
@@ -353,9 +562,20 @@
 			event.preventDefault();
 			currentStep = 1;
 			updateProgress();
+			return;
 		}
+		if (!availabilityPassed) {
+			event.preventDefault();
+			availabilityMessage.className = 'booking-status error';
+			availabilityMessage.textContent = 'Please check availability before continuing.';
+			currentStep = 2;
+			updateProgress();
+			return;
+		}
+		updateDerivedInputs();
 	});
 
+	renderSummary();
 	updateProgress();
 })();
 </script>

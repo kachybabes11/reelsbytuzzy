@@ -37,13 +37,3 @@ export async function getMaxHourlyBookingHours() {
   const settingValue = await getSetting(MAX_HOURLY_BOOKING_HOURS_KEY);
   return parsePositiveInteger(settingValue, defaultMaxHourlyBookingHours);
 }
-
-export async function setMaxHourlyBookingHours(value) {
-  const parsed = parsePositiveInteger(value, null);
-  if (!parsed) {
-    throw new Error("Maximum hourly booking hours must be a positive whole number.");
-  }
-
-  await setSetting(MAX_HOURLY_BOOKING_HOURS_KEY, parsed);
-  return parsed;
-}

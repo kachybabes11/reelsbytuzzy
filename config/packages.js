@@ -1,144 +1,373 @@
 const packages = [
   {
     id: 1,
-    slug: "essential-wedding",
+    slug: "yes-to-forever",
     category: "Wedding",
-    name: "Essential Wedding",
+    name: "Yes to Forever",
     description:
-      "Perfect for intimate weddings and couples who want the day's highlights beautifully captured.",
+      "A complete cinematic journey capturing your love story from the proposal through three wedding celebrations of your choice.",
     fullDescription:
-      "The Essential Wedding package is designed for couples who want clean cinematic coverage of their day without missing key emotional moments. We focus on meaningful storytelling, polished color, and social-ready edits that preserve the joy and intimacy of your celebration.",
+      "This package is designed for couples who want a comprehensive visual record of their wedding journey. From the proposal to three wedding celebrations of your choice, whether it's your Introduction, Pre-Wedding Session, Traditional Wedding, Civil Wedding, White Wedding or Nikkah; this package is designed to tell your entire love story as one seamless cinematic experience. Every milestone is captured with intention, preserving the emotions, details, and unforgettable moments that make your journey unique, so you can relive every chapter for years to come.",
     mediaType: "image",
     mediaSrc: "/assets/beauty-1.jpg",
     features: [
       "Morning preparations",
-      "Ceremony coverage",
-      "Reception highlights",
       "4 cinematic reels",
-      "1 highlight film (3-5 mins)",
-      "Professional color grading"
-    ],
-    duration: "Up to 8 Hours",
-    delivery: "7-14 Days",
-    price: 400000,
-    popular: false
-  },
-  {
-    id: 2,
-    slug: "signature-wedding",
-    category: "Wedding",
-    name: "Signature Wedding",
-    description:
-      "Our most popular package for couples who want complete storytelling from start to finish.",
-    fullDescription:
-      "Signature Wedding delivers complete narrative coverage from prep to final celebration moments. With premium reels, a story-led highlight film, and behind-the-scenes perspective, this package is built for couples who want a timeless visual archive with modern social polish.",
-    mediaType: "image",
-    mediaSrc: "/assets/beauty-2.jpg",
-    features: [
-      "Full-day coverage",
-      "Bride & groom prep",
-      "Ceremony & reception",
-      "6 premium reels",
-      "Highlight film",
-      "Behind-the-scenes content",
-      "Drone shots (if available)"
+      "3 highlight films (3-5 mins)",
     ],
     duration: "Full Day",
-    delivery: "5-10 Days",
-    price: 650000,
-    popular: true
+    delivery: "3-4 Days",
+    price: 1000000,
+    popular: false
   },
-  {
-    id: 3,
-    slug: "brand-content-day",
-    category: "Brand",
-    name: "Brand Content Day",
+    {
+    id: 2,
+    slug: "full-wedding-experience",
+    category: "Wedding",
+    name: "The Full Wedding Experience",
     description:
-      "Content designed to elevate your brand across social media and marketing campaigns.",
+      "A complete cinematic journey capturing your love story through three wedding celebrations of your choice.",
     fullDescription:
-      "Brand Content Day is for businesses that need high-quality visuals with a strategic content angle. We combine creative direction and efficient production to generate polished assets you can repurpose across launches, campaigns, and daily social communication.",
-    mediaType: "image",
-    mediaSrc: "/assets/beauty-2.jpg",
-    features: [
-      "Strategy session",
-      "Up to 10 short-form videos",
-      "Product showcase",
-      "Lifestyle content",
-      "Professional editing"
-    ],
-    duration: "Half Day",
-    delivery: "5 Days",
-    price: 300000,
-    popular: true
-  },
-  {
-    id: 4,
-    slug: "creator-package",
-    category: "Personal Branding",
-    name: "Creator Package",
-    description:
-      "Build a strong online presence with content tailored to your personal brand.",
-    fullDescription:
-      "The Creator Package is built to shape your personal brand with a consistent look and storytelling rhythm. We help you create content that feels authentic to your voice while maintaining premium visual quality that grows audience trust.",
+      "This package is designed for couples who want a comprehensive visual record of their wedding journey. From the proposal to three wedding celebrations of your choice, whether it's your Introduction, Pre-Wedding Session, Traditional Wedding, Civil Wedding, White Wedding or Nikkah; this package is designed to tell your entire love story as one seamless cinematic experience. Every milestone is captured with intention, preserving the emotions, details, and unforgettable moments that make your journey unique, so you can relive every chapter for years to come.",
     mediaType: "image",
     mediaSrc: "/assets/beauty-1.jpg",
     features: [
-      "Content planning",
-      "8 edited reels",
-      "Personal branding shoot",
-      "Creative direction",
-      "Captions & formatting"
+      "Morning preparations",
+      "4 cinematic reels",
+      "3 highlight films (3-5 mins)",
     ],
-    duration: "4 Hours",
-    delivery: "3-5 Days",
+    duration: "Full Day",
+    delivery: "3-4 Days",
+    price: 900000,
+    popular: false
+  },
+  {
+    id: 3,
+    slug: "tuzzy-experience",
+    category: "Wedding",
+    name: "The Tuzzy Experience",
+    description:
+      "A beautifully intentional film celebrating your love in its most authentic form.",
+    fullDescription:
+      "The Tuzzy Experience is all about slowing down and capturing the genuine connection between you and your partner. Through carefully directed yet natural moments, we create a premium cinematic highlight that reflects your personalities, chemistry, and the love you share.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
+    features: [
+      "Premium highlight video of intentionally Captured Intimate Couple moments",
+      "1 Creator",
+    ],
+    duration: "3 hours",
+    delivery: "3-4 Days",
+    price: 150000,
+    popular: true
+  },  
+  {
+    id: 4,
+    slug: "introduction-package",
+    category: "Wedding",
+    name: "The Introduction Package",
+    description:
+      "A comprehensive package capturing the essence of your introduction ceremony.",
+    fullDescription:
+      "The Introduction Package is designed to document your introduction ceremony with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
+    features: [
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "1 Trendy social media reel",
+      "Highlights of the introduction ceremony ",
+    ],
+    duration: "6 hours",
+    delivery: "3-4 Days",
     price: 250000,
     popular: false
   },
   {
-    id: 5,
-    slug: "event-coverage",
-    category: "Events",
-    name: "Event Coverage",
+    id: 5 ,
+    slug: "pre-wedding",
+    category: "Wedding",
+    name: "Pre-Wedding Package",
     description:
-      "Professional coverage for birthdays, conferences, launches, concerts, and private events.",
+      "A cinematic package capturing the essence of your pre-wedding moments.",
     fullDescription:
-      "Event Coverage captures the pace, atmosphere, and standout moments of your event with cinematic precision. From social highlights to recap edits, this package ensures your event story stays valuable long after the day ends.",
+      "The Pre-wedding Package is designed to document your pre-wedding moments with cinematic precision. From candid shots to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
-    mediaSrc: "/assets/beauty-2.jpg",
+    mediaSrc: "/assets/beauty-1.jpg",
     features: [
-      "Event coverage",
-      "Highlight reel",
-      "Social media edits",
-      "Professional color grading"
+      "1 overall highlight video",
+      "1 intimate couple video",
+      "1 transition video",
     ],
-    duration: "Custom",
-    delivery: "5-7 Days",
+    duration: "4 Hours",
+    delivery: "3-5 Days",
     price: 200000,
     popular: false
   },
   {
     id: 6,
-    slug: "editing-creative-direction",
-    category: "Post Production",
-    name: "Editing & Creative Direction",
+    slug: "proposal-package",
+    category: "Wedding",
+    name: "Proposal Package",
     description:
-      "Already have footage? We'll transform it into a polished cinematic story.",
+      "A cinematic package capturing the essence of your proposal.",
     fullDescription:
-      "Editing and Creative Direction gives you a complete post-production partner. If you already shot your footage, we shape it into a compelling final piece with refined pacing, tone, sound, and narrative structure tailored to your objective.",
+      "The Proposal Package is designed to document your proposal with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
+    features: [
+      "BTS/Decor Setup of the proposal", 
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Professionally edited Proposal highlights",
+      "Couple’s Interview"
+    ],
+    duration: "4 hours",
+    delivery: "5-7 Days",
+    price: 200000,
+    popular: false
+  },
+  {
+    id: 7,
+    slug: "trad-wedding-package",
+    category: "Wedding",
+    name: "Traditional Wedding Package",
+    description:
+      "A cinematic package capturing the essence of your traditional wedding.",
+    fullDescription:
+      "The Traditional Wedding Package is designed to document your traditional wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
     mediaSrc: "/assets/beauty-1.jpg",
     features: [
-      "Professional editing",
-      "Color grading",
-      "Sound design",
-      "Motion graphics",
-      "Creative consultation"
+      "Morning Prep highlights",
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Bride and Groom interviews",
+      "4 Transition videos (i)Bride (ii)Groom (iii)Aso ebi girls (iv)Groomsmen",
+      "1 trendy social media reel",
+      "Bride and Groom entrance",
+      "Professionally edited highlights of the Traditional wedding ceremony."
     ],
-    duration: "Custom",
-    delivery: "Depends on project",
-    price: 100000,
+    duration: "8 hours",
+    delivery: "3-4 Days",
+    price: 350000,
     popular: false
-  }
+  },
+  {
+    id: 8,
+    slug: "premium-white-wedding-package",
+    category: "Wedding",
+    name: "Premium White Wedding Package",
+    description:
+      "A premium cinematic package capturing the essence of your white wedding.",
+    fullDescription:
+      "The Premium White Wedding Package is designed to document your white wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-1.jpg",
+    features: [
+      "Morning Prep highlights",
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Bride and Groom interviews",
+      "Interview Reels (i)Bridesmaids (ii)Groomsmen",
+      "4 Transition videos (i)Bride (ii)Groom (iii)Aso ebi girls (iv)Groomsmen",
+      "1 trendy social media reel",
+      "BTS Content",
+      "Professionally edited highlights of the White wedding ceremony.",
+      "Wedding Reception & After Party Full Coverage"
+    ],
+    extraFeatures: [
+      "Wedding Reception & Afterparty Coverage.",
+      "BTS/Setup of the Reception Venue",
+      "Bride and Groom’s Entrance",
+      "Bridal squad and Groomsmen Entrance",
+      "Premium highlights of the reception ceremony.",
+      "Premium highlights of the wedding after party."
+    ],
+    duration: "12-15 hours",
+    delivery: "3-4 Days",
+    price: 550000,
+    popular: true
+  },
+    {
+    id: 9,
+    slug: "standard-white-wedding-package",
+    category: "Wedding",
+    name: "Standard White Wedding Package",
+    description:
+      "A standard cinematic package capturing the essence of your white wedding.",
+    fullDescription:
+      "The Standard White Wedding Package is designed to document your white wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-1.jpg",
+    features: [
+      "Morning Prep highlights",
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Bride and Groom interviews",
+      "4 Transition videos (i)Bride (ii)Groom (iii)Aso ebi girls (iv)Groomsmen",
+      "1 trendy social media reel",
+      "BTS Content",
+      "Highlights of the White wedding ceremony.",
+    ],
+    duration: "6 hours",
+    delivery: "3-4 Days",
+    price: 300000,
+    popular: false
+  },
+   {
+    id: 10,
+    slug: "premium-nikkah-wedding-package",
+    category: "Wedding",
+    name: "Premium Nikkah Wedding Package",
+    description:
+      "A premium cinematic package capturing the essence of your Nikkah wedding.",
+    fullDescription:
+      "The Premium Nikkah Wedding Package is designed to document your Nikkah wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-1.jpg",
+    features: [
+      "Morning Prep highlights",
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Bride and Groom interviews",
+      "Interview Reels (i)Bridesmaids (ii)Groomsmen",
+      "4 Transition videos (i)Bride (ii)Groom (iii)Aso ebi girls (iv)Groomsmen",
+      "1 trendy social media reel",
+      "BTS Content",
+      "Professionally edited highlights of the Nikkah wedding ceremony.",
+      "Wedding Reception & After Party Full Coverage"
+    ],
+    extraFeatures: [
+      "Wedding Reception & Afterparty Coverage.",
+      "BTS/Setup of the Reception Venue",
+      "Bride and Groom’s Entrance",
+      "Bridal squad and Groomsmen Entrance",
+      "Premium highlights of the reception ceremony.",
+      "Premium highlights of the wedding after party."
+    ],
+    duration: "12-15 hours",
+    delivery: "3-4 Days",
+    price: 550000,
+    popular: true
+  },
+    {
+    id: 11,
+    slug: "standard-nikkah-wedding-package",
+    category: "Wedding",
+    name: "Standard Nikkah Wedding Package",
+    description:
+      "A standard cinematic package capturing the essence of your Nikkah wedding.",
+    fullDescription:
+      "The Standard Nikkah Wedding Package is designed to document your Nikkah wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-1.jpg",
+    features: [
+      "Morning Prep highlights",
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Bride and Groom interviews",
+      "4 Transition videos (i)Bride (ii)Groom (iii)Aso ebi girls (iv)Groomsmen",
+      "1 trendy social media reel",
+      "BTS Content",
+      "Highlights of the Nikkah wedding ceremony.",
+    ],
+    duration: "6 hours",
+    delivery: "3-4 Days",
+    price: 300000,
+    popular: false
+  },
+    {
+    id: 12,
+    slug: "premium-civil-package",
+    category: "Wedding",
+    name: "Premium Civil Wedding Package",
+    description:
+      "A cinematic package capturing the essence of your civil wedding.",
+    fullDescription:
+      "The Premium Civil Wedding Package is designed to document your civil wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
+    features: [
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Interview moments (Bride, Groom and select guests)",
+      "Highlights of the Civil wedding ceremony.",
+      "BTS/Setup of the reception venue.",
+      "Professionally edited highlights of the reception party."
+    ],
+    duration: "6 hours",
+    delivery: "3-4 Days",
+    price: 300000,
+    popular: true
+  },
+   {
+    id: 13  ,
+    slug: "standard-civil-package",
+    category: "Wedding",
+    name: "Standard Civil Wedding Package",
+    description:
+      "A cinematic package capturing the essence of your civil wedding.",
+    fullDescription:
+      "The Standard Civil Wedding Package is designed to document your civil wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
+    features: [
+      "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
+      "Interview moments (Bride and Groom)",
+      "Highlights of the Civil wedding ceremony.",
+    ],
+    duration: "4 hours",
+    delivery: "3-4 Days",
+    price: 200000,
+    popular: false
+  },
+   {
+    id: 14,
+    slug: "afterparty-package",
+    category: "Wedding",
+    name: "Wedding Reception/Afterparty Package",
+    description:
+      "A cinematic package capturing the essence of your afterparty.",
+    fullDescription:
+      "The Afterparty Package is designed to document your afterparty with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
+    features: [
+      "BTS/Setup of the Reception Venue",
+      "Bride and Groom’s Entrance",
+      "Bridal squad and Groomsmen Entrance",
+      "Premium Highlights of the reception ceremony.",
+      "Premium highlights of the wedding after party."
+    ],
+    duration: "6 hours",
+    delivery: "3-4 Days",
+    price: 250000,
+    popular: false
+  },
+    {
+    id: 15,
+    slug: "zoom-coverage",
+    category: "Event Coverage",
+    name: "Zoom Coverage",
+    description: "Premium event coverage with clear duration tiers for intimate and extended productions.",
+    fullDescription:
+      "Zoom Coverage is designed for clients who want a structured coverage window with premium production value. Choose the duration tier that best fits the event and continue through the same booking and payment flow as every other package.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
+    features: [
+      "Choose a 0-6 hour or 6-12 hour coverage tier",
+      "Same secure booking flow and deposit process",
+      "Ideal for premium events that need a defined coverage window",
+    ],
+    duration: "0-12 Hours",
+    delivery: "Custom delivery timeline",
+    price: 250000,
+    popular: false,
+    packageType: "standard",
+    isHourly: false,
+    bookingConfig: {
+      mode: "tiered",
+      durationLabel: "Coverage Tier",
+      durationOptions: [
+        { label: "0–6 Hours — ₦250,000", value: 6, price: 250000 },
+        { label: "6–12 Hours — ₦400,000", value: 12, price: 400000 },
+      ],
+    },
+  },
+  
 ];
 
 export default packages;

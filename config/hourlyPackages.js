@@ -1,100 +1,48 @@
 const hourlyPackages = [
   {
     id: 1,
-    slug: "photography-hourly",
-    category: "Photography",
-    price: 50000,
+    slug: "hourly-booking",
+    category: "Hourly Booking",
+    name: "Hourly Booking",
+    description: "Flexible videography coverage with tiered duration pricing and add-on videos.",
+    fullDescription:
+      "Hourly Booking is our flexible coverage option for events that need premium videography support without committing to a fixed package. Select a duration tier, choose how many videos you want delivered, and continue through the same booking flow used by every other package.",
+    mediaType: "image",
+    mediaSrc: "/assets/beauty-2.jpg",
     features: [
-      "1 professionally edited reel",
-      "Basic color grading",
-      "Creative direction",
-      "Online delivery"
-    ]
-  },
-  {
-    id: 2,
-    slug: "videography-hourly",
-    category: "Videography",
-    price: 100000,
-    features: [
-      "2 professionally edited reels",
-      "Basic color grading",
-      "Creative direction",
-      "Online delivery"
-    ]
-  },
-  {
-    id: 3,
-    slug: "content-creation-hourly",
-    category: "Content Creation",
-    price: 150000,
-    features: [
-      "3 professionally edited reels",
-      "Advanced color grading",
-      "Creative direction",
-      "Online delivery"
-    ]
-  },
-  {
-    id: 4,
-    slug: "event-coverage-hourly",
-    category: "Event Coverage",
-    price: 200000,
-    features: [
-      "4 professionally edited reels",
-      "Advanced color grading",
-      "Creative direction",
-      "Online delivery"
-    ]
-  },
-  {
-    id: 5,
-    slug: "personal-branding-hourly",
-    category: "Personal Branding",
-    price: 250000,
-    features: [
-      "5 professionally edited reels",
-      "Advanced color grading",
-      "Creative direction",
-      "Online delivery"
-    ]
-  },
-  {
-    id: 6,
-    slug: "photography-premium-hourly",
-    category: "Photography",
-    price: 300000,
-    features: [
-      "6 professionally edited reels",
-      "Premium color grading",
-      "Creative direction",
-      "Online delivery"
-    ]
-  },
-  {
-    id: 7,
-    slug: "videography-premium-hourly",
-    category: "Videography",
-    price: 350000,
-    features: [
-      "7 professionally edited reels",
-      "Premium color grading",
-      "Creative direction",
-      "Online delivery"
-    ]
-  },
-  {
-    id: 8,
-    slug: "content-creation-premium-hourly",
-    category: "Content Creation",
-    price: 400000,
-    features: [
-      "8 professionally edited reels",
-      "Premium color grading",
-      "Creative direction",
-      "Online delivery"
+      "Select the coverage tier that fits your event",
+      "Add extra edited videos as needed",
+      "Secure the date with the same booking flow and deposit process",
     ],
-  }
+    duration: "0-12 Hours",
+    delivery: "Custom delivery timeline",
+    price: 60000,
+    popular: true,
+    packageType: "hourly",
+    isHourly: true,
+    bookingConfig: {
+      mode: "hourly-booking",
+      durationLabel: "Coverage Tier",
+      durationOptions: [
+        { label: "0–3 Hours — ₦60,000", value: 3, price: 60000 },
+        { label: "3–6 Hours — ₦100,000", value: 6, price: 100000 },
+        { label: "6–9 Hours — ₦140,000", value: 9, price: 140000 },
+        { label: "9–12 Hours — ₦180,000", value: 12, price: 180000 },
+      ],
+      videoLabel: "Number of Videos",
+      videoPrice: 70000,
+      videoOptions: [1, 2, 3, 4, 5],
+      eventTypes: [
+        "Birthday Parties",
+        "Lifestyle Content",
+        "Anniversaries",
+        "Memorials",
+        "BTS Shoots",
+        "Naming Ceremony / Baby Dedication",
+        "Personal Branding (Talking Head Videos)",
+      ],
+    },
+  },
 ];
 
 export default hourlyPackages;

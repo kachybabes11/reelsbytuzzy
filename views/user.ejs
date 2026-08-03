@@ -22,7 +22,7 @@
 						<div class="user-booking-main">
 							<h3><%= booking.package_name || "Studio Package" %></h3>
 							<span class="user-booking-date">
-								<%= booking.booking_date ? new Date(booking.booking_date).toLocaleDateString() : "Date not set" %>
+								<%= booking.booking_date ? new Date(booking.booking_date).toLocaleDateString('en-GB') : "Date not set" %>
 							</span>
 						</div>
 						<span class="user-booking-status"><%= booking.status || "Pending" %></span>

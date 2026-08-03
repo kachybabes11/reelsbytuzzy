@@ -13,8 +13,14 @@
 			<div class="checkout-summary-card">
 				<p><strong><%= summary.packageName %></strong></p>
 				<p>Type: <%= summary.packageType %></p>
-				<% if (summary.selectedHours) { %>
-					<p>Hours: <%= summary.selectedHours %></p>
+				<% if (summary.selectedOptionLabel) { %>
+					<p>Coverage Tier: <%= summary.selectedOptionLabel %></p>
+				<% } %>
+				<% if (summary.eventType) { %>
+					<p>Event Type: <%= summary.eventType %></p>
+				<% } %>
+				<% if (summary.numberOfVideos) { %>
+					<p>Number of Videos: <%= summary.numberOfVideos %></p>
 				<% } %>
 				<p>Total: ₦<%= Number(summary.totalPrice).toLocaleString() %></p>
 				<p>Deposit (70%): ₦<%= Number(summary.depositAmount).toLocaleString() %></p>

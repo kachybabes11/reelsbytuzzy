@@ -36,6 +36,17 @@ export async function ensureDatabase() {
   `);
 
   await db.query(`
+    CREATE TABLE IF NOT EXISTS password_reset_tokens (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      token_hash TEXT UNIQUE NOT NULL,
+      expires_at TIMESTAMPTZ NOT NULL,
+      used_at TIMESTAMPTZ,
+      created_at TIMESTAMPTZ DEFAULT now()
+    );
+  `);
+
+  await db.query(`
     CREATE TABLE IF NOT EXISTS bookings (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
@@ -46,6 +57,9 @@ export async function ensureDatabase() {
       package_price INTEGER NOT NULL,
       hourly_rate INTEGER,
       selected_hours INTEGER,
+      selected_option_label TEXT,
+      selected_option_price INTEGER,
+      number_of_videos INTEGER,
       deposit_amount INTEGER,
       remaining_balance INTEGER,
       booking_date DATE NOT NULL,
@@ -78,6 +92,9 @@ export async function ensureDatabase() {
       package_price INTEGER NOT NULL,
       hourly_rate INTEGER,
       selected_hours INTEGER,
+      selected_option_label TEXT,
+      selected_option_price INTEGER,
+      number_of_videos INTEGER,
       deposit_amount INTEGER,
       remaining_balance INTEGER,
       booking_date DATE NOT NULL,
@@ -111,14 +128,26 @@ export async function ensureDatabase() {
     WHERE status = 'active';
   `);
 
+  await db.query(`
+    CREATE INDEX IF NOT EXISTS idx_password_reset_tokens_active
+    ON password_reset_tokens (user_id, expires_at)
+    WHERE used_at IS NULL;
+  `);
+
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS package_type TEXT NOT NULL DEFAULT 'standard';`);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS hourly_rate INTEGER;`);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_hours INTEGER;`);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_option_label TEXT;`);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_option_price INTEGER;`);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS number_of_videos INTEGER;`);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS deposit_amount INTEGER;`);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS remaining_balance INTEGER;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS package_type TEXT NOT NULL DEFAULT 'standard';`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS hourly_rate INTEGER;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS selected_hours INTEGER;`);
+  await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS selected_option_label TEXT;`);
+  await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS selected_option_price INTEGER;`);
+  await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS number_of_videos INTEGER;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS deposit_amount INTEGER;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS remaining_balance INTEGER;`);
 
@@ -130,10 +159,24 @@ export async function ensureDatabase() {
   `);
 
   await db.query(`
+    UPDATE bookings
+    SET selected_option_price = COALESCE(selected_option_price, hourly_rate),
+        number_of_videos = COALESCE(number_of_videos, 0)
+    WHERE selected_option_price IS NULL OR number_of_videos IS NULL;
+  `);
+
+  await db.query(`
     UPDATE booking_holds
     SET deposit_amount = COALESCE(deposit_amount, ROUND(package_price * 0.7)),
         remaining_balance = COALESCE(remaining_balance, package_price - ROUND(package_price * 0.7))
     WHERE deposit_amount IS NULL OR remaining_balance IS NULL;
+  `);
+
+  await db.query(`
+    UPDATE booking_holds
+    SET selected_option_price = COALESCE(selected_option_price, hourly_rate),
+        number_of_videos = COALESCE(number_of_videos, 0)
+    WHERE selected_option_price IS NULL OR number_of_videos IS NULL;
   `);
 }
   
