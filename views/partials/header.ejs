@@ -90,11 +90,11 @@
 				const closeOnPageTouch = (event) => {
 					if (!document.body.classList.contains('nav-open')) return;
 					if (toggle.contains(event.target)) return;
+					if (navLinks.contains(event.target)) return;
 					closeNav();
 				};
 
 				document.addEventListener('click', closeOnPageTouch);
-				document.addEventListener('touchstart', closeOnPageTouch, { passive: true });
 
 				document.addEventListener('keydown', (event) => {
 					if (event.key === 'Escape') {
