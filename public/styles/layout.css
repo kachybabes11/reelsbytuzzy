@@ -2080,6 +2080,233 @@ img {
   gap: 1rem;
 }
 
+.premium-customization-panel {
+  display: block;
+}
+
+.premium-customization-main {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.premium-customization-main.booking-panel {
+  border-color: rgba(17, 17, 17, 0.12);
+  box-shadow: 0 14px 34px rgba(17, 17, 17, 0.06);
+}
+
+.premium-customization-head h3 {
+  margin: 0;
+  font-family: "Cormorant Garamond", serif;
+  font-size: clamp(1.55rem, 3.2vw, 2.3rem);
+}
+
+.premium-customization-head p {
+  margin: 0.2rem 0 0;
+  color: #63594c;
+  line-height: 1.55;
+}
+
+.premium-selection-progress {
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 0.95rem;
+  background: #fff;
+  padding: 0.75rem 0.85rem;
+  line-height: 1.55;
+}
+
+.premium-selection-status {
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 0.85rem;
+  background: #fff;
+  color: #5e5549;
+  padding: 0.55rem 0.75rem;
+}
+
+.premium-selection-status.success {
+  border-color: rgba(36, 87, 58, 0.26);
+  background: rgba(230, 243, 231, 0.8);
+  color: #24573a;
+}
+
+.premium-selected-list {
+  border: 1px solid rgba(17, 17, 17, 0.08);
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.96);
+  padding: 0.65rem 0.8rem;
+}
+
+.premium-selected-list-title {
+  margin: 0 0 0.4rem;
+  color: #6a6258;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.premium-selected-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.premium-selected-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.92rem;
+}
+
+.premium-selected-list li span {
+  color: #544a3f;
+}
+
+.premium-selected-list li strong {
+  color: #161616;
+  font-weight: 600;
+}
+
+.premium-events-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.premium-event-card {
+  border: 1px solid rgba(17, 17, 17, 0.1);
+  border-radius: 1rem;
+  background: #fff;
+  overflow: hidden;
+  transition: box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.premium-event-card:hover {
+  box-shadow: 0 8px 20px rgba(18, 18, 18, 0.06);
+}
+
+.premium-event-card.is-selected {
+  border-color: #111;
+  box-shadow: 0 0 0 1px rgba(17, 17, 17, 0.12), 0 10px 24px rgba(20, 20, 20, 0.08);
+}
+
+.premium-event-card.is-included {
+  border-color: #1d1d1d;
+}
+
+.premium-event-card.is-disabled {
+  opacity: 0.68;
+}
+
+.premium-event-toggle {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0.95rem;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.65rem;
+  align-items: center;
+  text-align: left;
+  cursor: pointer;
+}
+
+.premium-event-title {
+  font-weight: 700;
+  font-size: 1.01rem;
+}
+
+.premium-event-indicator,
+.premium-event-badge {
+  font-size: 0.74rem;
+  border: 1px solid rgba(17, 17, 17, 0.14);
+  border-radius: 999px;
+  padding: 0.22rem 0.52rem;
+  color: #4f473d;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.premium-event-badge {
+  background: #151515;
+  color: #faf6ef;
+  border-color: #151515;
+}
+
+.premium-event-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 280ms ease;
+  padding: 0 0.85rem;
+}
+
+.premium-event-body.is-open {
+  max-height: 700px;
+  padding-bottom: 0.95rem;
+}
+
+.premium-event-description {
+  margin: 0 0 0.55rem;
+  color: #61584c;
+}
+
+.premium-feature-list {
+  margin: 0 0 0.6rem;
+  padding-left: 1.05rem;
+  display: grid;
+  gap: 0.2rem;
+  color: #4f473c;
+}
+
+.premium-feature-list li {
+  line-height: 1.45;
+}
+
+.premium-meta-list {
+  margin: 0;
+  padding-left: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.24rem;
+  color: #4f473c;
+}
+
+.premium-meta-list li {
+  display: flex;
+  gap: 0.3rem;
+  align-items: baseline;
+}
+
+.premium-event-actions {
+  margin-top: 0.7rem;
+}
+
+.premium-date-field {
+  margin-top: 0.7rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.premium-date-time-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.6rem;
+}
+
+.premium-date-field input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid rgba(17, 17, 17, 0.12);
+  border-radius: 0.85rem;
+  background: #fff;
+  padding: 0.75rem;
+}
+
+.premium-date-field input:focus {
+  outline: none;
+  border-color: rgba(17, 17, 17, 0.45);
+  box-shadow: 0 0 0 4px rgba(17, 17, 17, 0.06);
+}
+
+
 .booking-schedule-copy h3 {
   margin: 0 0 0.35rem;
   font-family: "Cormorant Garamond", serif;
@@ -2435,6 +2662,25 @@ img {
   width: min(100%, 760px);
 }
 
+.checkout-event-list,
+.confirmation-event-list,
+.admin-event-list {
+  margin: 0;
+  padding-left: 1rem;
+}
+
+.checkout-event-list li,
+.confirmation-event-list li,
+.admin-event-list li {
+  margin: 0.25rem 0;
+}
+
+.checkout-event-list li {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
 .checkout-reference {
   margin: 0;
   color: #5f5548;
@@ -2620,6 +2866,10 @@ img {
 
   .summary-line strong {
     text-align: left;
+  }
+
+  .premium-date-time-row {
+    grid-template-columns: 1fr;
   }
 
   .booking-package-card img {

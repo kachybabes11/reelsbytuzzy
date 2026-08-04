@@ -19,9 +19,20 @@
 		<p><strong>Booking Reference:</strong> <%= bookingReference || 'Pending Manual Review' %></p>
 		<p><strong>Package:</strong> <%= packageName || 'Not Available' %></p>
 		<p><strong>Payment:</strong> <%= paymentStatus || 'Pending' %></p>
-		<p><strong>Deposit:</strong> 70% paid, 30% balance due before final delivery.</p>
+		<p><strong>Payment Terms:</strong> Paid in full at checkout.</p>
 		<p><strong>Coverage:</strong> Your package selections have been saved.</p>
 		<p><strong>Event Date:</strong> <%= bookingDate ? new Date(bookingDate).toLocaleDateString('en-GB') : 'Not Available' %></p>
+		<% if (selectedWeddingEvents && selectedWeddingEvents.length) { %>
+			<p><strong>Selected Wedding Events:</strong></p>
+			<ul class="confirmation-event-list">
+				<% selectedWeddingEvents.forEach((eventItem) => { %>
+					<li>
+						<span><%= eventItem.name %></span>
+						<strong><%= selectedEventDates?.[eventItem.slug] ? new Date(selectedEventDates[eventItem.slug]).toLocaleDateString('en-GB') : 'Date unavailable' %></strong>
+					</li>
+				<% }) %>
+			</ul>
+		<% } %>
 		<p><strong>Contact:</strong> +234 708 806 9114 | reelsbytuzzy@gmail.com</p>
 	</div>
 

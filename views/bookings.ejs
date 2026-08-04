@@ -3,7 +3,7 @@
 
 <section class="section-shell booking-shell" data-hold-minutes="<%= holdMinutes %>">
 	<header class="booking-intro">
-		<span class="eyebrow">Luxury Booking</span>
+		<span class="eyebrow">Booking</span>
 		<h1 class="page-title">Book Your Shoot</h1>
 		<p class="page-subtitle">A clean 4-step booking flow with secure checkout. Your selected time slot is held for <strong><%= holdMinutes %> minutes</strong> after checkout starts.</p>
 	</header>
@@ -16,7 +16,10 @@
 		<input type="hidden" id="selectedOptionPrice" name="selectedOptionPrice" value="" />
 		<input type="hidden" id="eventType" name="eventType" value="Booking" />
 		<input type="hidden" id="selectedVideosHidden" name="selectedVideos" value="" />
-		<div id="booking-data" hidden data-packages="<%= encodeURIComponent(JSON.stringify(packages.map((pkg) => ({ slug: pkg.slug, price: pkg.price, isHourly: Boolean(pkg.isHourly), hourlyRate: pkg.hourlyRate || pkg.price, name: pkg.name, description: pkg.description, durationMinutes: pkg.durationMinutes || null, bookingConfig: pkg.bookingConfig || null })))) %>" data-max-hours="<%= maxHourlyBookingHours %>"></div>
+		<input type="hidden" id="selectedWeddingEvents" name="selectedWeddingEvents" value="" />
+		<input type="hidden" id="selectedEventDates" name="selectedEventDates" value="" />
+		<input type="hidden" id="selectedEventTimes" name="selectedEventTimes" value="" />
+		<div id="booking-data" hidden data-packages="<%= encodeURIComponent(JSON.stringify(packages.map((pkg) => ({ slug: pkg.slug, price: pkg.price, isHourly: Boolean(pkg.isHourly), hourlyRate: pkg.hourlyRate || pkg.price, name: pkg.name, description: pkg.description, features: pkg.features || [], duration: pkg.duration, delivery: pkg.delivery, durationMinutes: pkg.durationMinutes || null, bookingConfig: pkg.bookingConfig || null })))) %>" data-max-hours="<%= maxHourlyBookingHours %>"></div>
 
 		<div class="booking-main">
 			<div class="booking-progress-wrap">
@@ -57,16 +60,16 @@
 			</section>
 
 			<section class="booking-step" data-step="2">
-				<div class="booking-panel booking-schedule-panel">
+				<div id="standard-schedule-panel" class="booking-panel booking-schedule-panel" hidden>
 					<div class="booking-panel-copy booking-schedule-copy">
 						<p class="booking-step-eyebrow">Schedule Details</p>
 					</div>
 					<div class="booking-fields-grid booking-schedule-grid">
 						<label>Date
-							<input required type="date" id="bookingDate" name="bookingDate" />
+							<input type="date" id="bookingDate" name="bookingDate" />
 						</label>
 						<label>Start Time
-							<input required type="time" id="startTime" name="startTime" />
+							<input type="time" id="startTime" name="startTime" />
 						</label>
 						<label class="booking-dynamic-field" id="eventTypeField" hidden>Event Type
 							<select id="eventTypeSelect" disabled>
@@ -83,6 +86,23 @@
 								<option value="">Select Number of Videos</option>
 							</select>
 						</label>
+					</div>
+				</div>
+
+				<div id="premium-customization-panel" class="premium-customization-panel" hidden>
+					<div class="premium-customization-main booking-panel">
+						<!-- <div class="premium-customization-head">
+							<p class="booking-step-eyebrow">Wedding Collection Builder</p>
+							<h3>Craft Your Coverage Journey</h3>
+							<p>Choose your events with intention. Your package price remains fixed while your selected moments shape your story.</p>
+						</div> -->
+						<div class="premium-selection-progress" id="premium-selection-progress" aria-live="polite"></div>
+						<div class="premium-selection-status" id="premium-selection-status" aria-live="polite"></div>
+						<div class="premium-selected-list" id="premium-selected-list" hidden>
+							<p class="premium-selected-list-title">Selected Packages & Dates</p>
+							<ul id="premium-selected-items"></ul>
+						</div>
+						<div class="premium-events-list" id="premium-events-list"></div>
 					</div>
 				</div>
 
@@ -168,23 +188,65 @@
 	const selectedOptionPriceInput = document.getElementById('selectedOptionPrice');
 	const eventTypeHiddenInput = document.getElementById('eventType');
 	const selectedVideosHiddenInput = document.getElementById('selectedVideosHidden');
+	const selectedWeddingEventsInput = document.getElementById('selectedWeddingEvents');
+	const selectedEventDatesInput = document.getElementById('selectedEventDates');
+	const selectedEventTimesInput = document.getElementById('selectedEventTimes');
 	const eventTypeField = document.getElementById('eventTypeField');
 	const durationField = document.getElementById('selectedHoursField');
 	const videosField = document.getElementById('selectedVideosField');
 	const eventTypeSelect = document.getElementById('eventTypeSelect');
 	const selectedHoursInput = document.getElementById('selectedHours');
 	const selectedVideosInput = document.getElementById('selectedVideos');
+	const standardSchedulePanel = document.getElementById('standard-schedule-panel');
+	const premiumPanel = document.getElementById('premium-customization-panel');
+	const premiumEventsList = document.getElementById('premium-events-list');
+	const premiumSelectionProgress = document.getElementById('premium-selection-progress');
+	const premiumSelectionStatus = document.getElementById('premium-selection-status');
+	const premiumSelectedList = document.getElementById('premium-selected-list');
+	const premiumSelectedItems = document.getElementById('premium-selected-items');
 	const selectedPackageData = JSON.parse(decodeURIComponent(bookingData.dataset.packages || '[]'));
 	const maxHourlyBookingHours = Number(bookingData.dataset.maxHours || 12);
+	const todayIso = new Date().toISOString().slice(0, 10);
+	const premiumMainPackageSlugs = new Set(['yes-to-forever', 'full-wedding-experience']);
+	const premiumSelectableSlugs = [
+		'premium-civil-package',
+		'premium-white-wedding-package',
+		'premium-nikkah-wedding-package',
+		'trad-wedding-package',
+		'pre-wedding',
+		'introduction-package',
+	];
+	const proposalPackageSlug = 'proposal-package';
+	const eventDisplayNames = {
+		'premium-civil-package': 'Premium Civil Wedding',
+		'premium-white-wedding-package': 'Premium White Wedding',
+		'premium-nikkah-wedding-package': 'Premium Nikkah',
+		'trad-wedding-package': 'Traditional Wedding',
+		'pre-wedding': 'Pre-Wedding Package',
+		'introduction-package': 'Introduction Package',
+		'proposal-package': 'Proposal',
+	};
 	const stepTitles = {
 		1: 'Select Package',
 		2: 'Schedule',
 		3: 'Client Info',
 		4: 'Summary',
 	};
+
+	const premiumState = {
+		selected: new Set(),
+		dates: {},
+		times: {},
+		expanded: new Set(),
+	};
+
 	let currentStep = packageSlugInput.value ? 2 : 1;
 	let availabilityPassed = false;
 	let activePackage = selectedPackageData.find((item) => item.slug === packageSlugInput.value) || null;
+
+	function isPremiumPackage() {
+		return premiumMainPackageSlugs.has(String(activePackage?.slug || ''));
+	}
 
 	function getBookingConfig() {
 		return activePackage?.bookingConfig || null;
@@ -199,6 +261,98 @@
 
 	function formatCurrency(value) {
 		return `₦${Number(value || 0).toLocaleString()}`;
+	}
+
+	function normalizeIsoDate(value) {
+		const normalized = String(value || '').trim();
+		return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : null;
+	}
+
+	function normalizeTime(value) {
+		const normalized = String(value || '').trim();
+		return /^\d{2}:\d{2}$/.test(normalized) ? normalized : null;
+	}
+
+	function extractCreatorCount(pkg) {
+		const matchedFeature = (pkg.features || []).find((feature) => /(\d+)\s*creator/i.test(String(feature || '')));
+		if (!matchedFeature) return 'Not specified';
+		const match = String(matchedFeature).match(/(\d+)\s*creator/i);
+		return match ? `${match[1]} creator(s)` : 'Not specified';
+	}
+
+	function getSelectableWeddingPackages() {
+		const packageMap = new Map(selectedPackageData.map((pkg) => [pkg.slug, pkg]));
+		return premiumSelectableSlugs.map((slug) => packageMap.get(slug)).filter(Boolean);
+	}
+
+	function getProposalPackage() {
+		return selectedPackageData.find((pkg) => pkg.slug === proposalPackageSlug) || null;
+	}
+
+	function resetPremiumState() {
+		premiumState.selected.clear();
+		premiumState.expanded.clear();
+		premiumState.dates = {};
+		premiumState.times = {};
+		selectedWeddingEventsInput.value = '';
+		selectedEventDatesInput.value = '';
+		selectedEventTimesInput.value = '';
+	}
+
+	function getPremiumRequirement() {
+		if (activePackage?.slug === 'yes-to-forever') {
+			return { requiredAdditional: 2, label: 'Additional Packages Selected' };
+		}
+		return { requiredAdditional: 3, label: 'Packages Selected' };
+	}
+
+	function getSelectedPremiumEventsForValidation() {
+		const selectableEvents = getSelectableWeddingPackages();
+		const selected = selectableEvents.filter((pkg) => premiumState.selected.has(pkg.slug));
+		if (activePackage?.slug === 'yes-to-forever') {
+			const proposal = getProposalPackage();
+			if (proposal) {
+				return [proposal, ...selected];
+			}
+		}
+		return selected;
+	}
+
+	function isPremiumSelectionComplete() {
+		if (!isPremiumPackage()) return false;
+		const { requiredAdditional } = getPremiumRequirement();
+		if (premiumState.selected.size !== requiredAdditional) {
+			return false;
+		}
+
+		const selectedEvents = getSelectedPremiumEventsForValidation();
+		if (!selectedEvents.length) return false;
+		return selectedEvents.every((pkg) => {
+			const dateValue = normalizeIsoDate(premiumState.dates[pkg.slug]);
+			const timeValue = normalizeTime(premiumState.times[pkg.slug]);
+			return Boolean(dateValue && dateValue >= todayIso && timeValue);
+		});
+	}
+
+	function updateDerivedInputs() {
+		const config = getBookingConfig();
+		const selection = getSelection();
+		const durationMinutes = selection?.selectedHours ? Number(selection.selectedHours) * 60 : Number(activePackage?.durationMinutes || 0);
+		durationMinutesInput.value = Number.isInteger(durationMinutes) && durationMinutes > 0 ? String(durationMinutes) : '';
+		selectedOptionLabelInput.value = selection?.selectedOptionLabel || '';
+		selectedOptionPriceInput.value = selection?.selectedOptionPrice || '';
+		selectedVideosHiddenInput.value = selection?.numberOfVideos || '';
+		if (isPremiumPackage()) {
+			eventTypeHiddenInput.value = 'Wedding Collection';
+			selectedWeddingEventsInput.value = JSON.stringify(Array.from(premiumState.selected));
+			selectedEventDatesInput.value = JSON.stringify(premiumState.dates);
+			selectedEventTimesInput.value = JSON.stringify(premiumState.times);
+		} else {
+			eventTypeHiddenInput.value = config?.mode === 'hourly-booking' ? String(eventTypeSelect?.value || '').trim() : 'Booking';
+			selectedWeddingEventsInput.value = '';
+			selectedEventDatesInput.value = '';
+			selectedEventTimesInput.value = '';
+		}
 	}
 
 	function populateSelect(select, options, placeholderLabel) {
@@ -249,22 +403,11 @@
 			totalPrice,
 			selectedOptionLabel: selectedOption.label,
 			selectedOptionPrice,
-			selectedHours: selectedHours,
+			selectedHours,
 			numberOfVideos: selectedVideos,
 			videoPrice,
 			eventType: config.mode === 'hourly-booking' ? String(eventTypeSelect?.value || '').trim() : 'Booking',
 		};
-	}
-
-	function updateDerivedInputs() {
-		const config = getBookingConfig();
-		const selection = getSelection();
-		const durationMinutes = selection?.selectedHours ? Number(selection.selectedHours) * 60 : Number(activePackage?.durationMinutes || 0);
-		durationMinutesInput.value = Number.isInteger(durationMinutes) && durationMinutes > 0 ? String(durationMinutes) : '';
-		selectedOptionLabelInput.value = selection?.selectedOptionLabel || '';
-		selectedOptionPriceInput.value = selection?.selectedOptionPrice || '';
-		selectedVideosHiddenInput.value = selection?.numberOfVideos || '';
-		eventTypeHiddenInput.value = config?.mode === 'hourly-booking' ? String(eventTypeSelect?.value || '').trim() : 'Booking';
 	}
 
 	function syncDynamicFields() {
@@ -273,43 +416,37 @@
 		const isTieredPackage = config?.mode === 'tiered';
 		const hasDurationOptions = Array.isArray(config?.durationOptions) && config.durationOptions.length > 0;
 
-		if (eventTypeField) {
-			eventTypeField.hidden = !isHourlyBooking;
-			eventTypeField.style.display = isHourlyBooking ? '' : 'none';
-			eventTypeSelect.disabled = !isHourlyBooking;
-			eventTypeSelect.required = isHourlyBooking;
-			if (isHourlyBooking) {
-				populateSelect(eventTypeSelect, (config.eventTypes || []).map((label) => ({ label, value: label })), 'Select Event Type');
-			} else {
-				eventTypeSelect.innerHTML = '<option value="Booking">Booking</option>';
-				eventTypeSelect.value = 'Booking';
-			}
+		eventTypeField.hidden = !isHourlyBooking;
+		eventTypeField.style.display = isHourlyBooking ? '' : 'none';
+		eventTypeSelect.disabled = !isHourlyBooking;
+		eventTypeSelect.required = isHourlyBooking;
+		if (isHourlyBooking) {
+			populateSelect(eventTypeSelect, (config.eventTypes || []).map((label) => ({ label, value: label })), 'Select Event Type');
+		} else {
+			eventTypeSelect.innerHTML = '<option value="Booking">Booking</option>';
+			eventTypeSelect.value = 'Booking';
 		}
 
-		if (durationField) {
-			durationField.hidden = !hasDurationOptions;
-			durationField.style.display = hasDurationOptions ? '' : 'none';
-			selectedHoursInput.disabled = !hasDurationOptions;
-			selectedHoursInput.required = hasDurationOptions;
-			if (hasDurationOptions) {
-				populateSelect(selectedHoursInput, config.durationOptions, 'Select Coverage Tier');
-			} else {
-				selectedHoursInput.innerHTML = '<option value="">Select Coverage Tier</option>';
-				selectedHoursInput.value = '';
-			}
+		durationField.hidden = !hasDurationOptions;
+		durationField.style.display = hasDurationOptions ? '' : 'none';
+		selectedHoursInput.disabled = !hasDurationOptions;
+		selectedHoursInput.required = hasDurationOptions;
+		if (hasDurationOptions) {
+			populateSelect(selectedHoursInput, config.durationOptions, 'Select Coverage Tier');
+		} else {
+			selectedHoursInput.innerHTML = '<option value="">Select Coverage Tier</option>';
+			selectedHoursInput.value = '';
 		}
 
-		if (videosField) {
-			videosField.hidden = !isHourlyBooking;
-			videosField.style.display = isHourlyBooking ? '' : 'none';
-			selectedVideosInput.disabled = !isHourlyBooking;
-			selectedVideosInput.required = isHourlyBooking;
-			if (isHourlyBooking) {
-				populateSelect(selectedVideosInput, (config.videoOptions || []).map((count) => ({ label: String(count), value: count })), 'Select Number of Videos');
-			} else {
-				selectedVideosInput.innerHTML = '<option value="">Select Number of Videos</option>';
-				selectedVideosInput.value = '';
-			}
+		videosField.hidden = !isHourlyBooking;
+		videosField.style.display = isHourlyBooking ? '' : 'none';
+		selectedVideosInput.disabled = !isHourlyBooking;
+		selectedVideosInput.required = isHourlyBooking;
+		if (isHourlyBooking) {
+			populateSelect(selectedVideosInput, (config.videoOptions || []).map((count) => ({ label: String(count), value: count })), 'Select Number of Videos');
+		} else {
+			selectedVideosInput.innerHTML = '<option value="">Select Number of Videos</option>';
+			selectedVideosInput.value = '';
 		}
 
 		if (!hasDurationOptions) {
@@ -325,6 +462,163 @@
 		}
 	}
 
+	function syncStepMode() {
+		const premium = isPremiumPackage();
+		premiumPanel.hidden = !premium;
+		premiumPanel.style.display = premium ? '' : 'none';
+		standardSchedulePanel.hidden = premium;
+		standardSchedulePanel.style.display = premium ? 'none' : '';
+		document.getElementById('bookingDate').required = !premium;
+		document.getElementById('startTime').required = !premium;
+		document.getElementById('bookingDate').disabled = premium;
+		document.getElementById('startTime').disabled = premium;
+		if (premium) {
+			document.getElementById('bookingDate').value = '';
+			document.getElementById('startTime').value = '';
+		}
+	}
+
+	function renderPremiumSelectionStatus() {
+		if (!isPremiumPackage()) return;
+		const { requiredAdditional, label } = getPremiumRequirement();
+		if (activePackage?.slug === 'yes-to-forever') {
+			premiumSelectionProgress.innerHTML = `<strong>Included:</strong> Proposal<br /><strong>${label}:</strong> ${premiumState.selected.size} of ${requiredAdditional}`;
+		} else {
+			premiumSelectionProgress.innerHTML = `<strong>${label}:</strong> ${premiumState.selected.size} of ${requiredAdditional}`;
+		}
+
+		if (isPremiumSelectionComplete()) {
+			premiumSelectionStatus.textContent = 'Selection complete. You can now check availability.';
+			premiumSelectionStatus.className = 'premium-selection-status success';
+		} else {
+			premiumSelectionStatus.textContent = 'Select the required events and assign a date to each selected event.';
+			premiumSelectionStatus.className = 'premium-selection-status';
+		}
+	}
+
+	function renderPremiumSelectedList() {
+		if (!isPremiumPackage()) {
+			premiumSelectedList.hidden = true;
+			premiumSelectedItems.innerHTML = '';
+			return;
+		}
+
+		const selectedEvents = getSelectedPremiumEventsForValidation();
+		const selectedRows = selectedEvents
+			.map((pkg) => ({
+				name: eventDisplayNames[pkg.slug] || pkg.name,
+				date: normalizeIsoDate(premiumState.dates[pkg.slug]),
+				time: normalizeTime(premiumState.times[pkg.slug]),
+			}))
+			.filter((row) => row.date && row.time)
+			.sort((left, right) => left.date.localeCompare(right.date));
+
+		if (!selectedRows.length) {
+			premiumSelectedList.hidden = true;
+			premiumSelectedItems.innerHTML = '';
+			return;
+		}
+
+		premiumSelectedItems.innerHTML = selectedRows
+			.map((row) => `<li><span>${row.name}</span><strong>${formatDisplayDate(row.date)} • ${row.time}</strong></li>`)
+			.join('');
+		premiumSelectedList.hidden = false;
+	}
+
+	function renderPremiumEvents() {
+		if (!isPremiumPackage()) {
+			premiumEventsList.innerHTML = '';
+			return;
+		}
+
+		const selectableEvents = getSelectableWeddingPackages();
+		const proposal = getProposalPackage();
+		const { requiredAdditional } = getPremiumRequirement();
+		const lockNewSelections = premiumState.selected.size >= requiredAdditional;
+
+		const eventCards = [];
+		if (activePackage?.slug === 'yes-to-forever' && proposal) {
+			const dateValue = premiumState.dates[proposal.slug] || '';
+			const timeValue = premiumState.times[proposal.slug] || '';
+			eventCards.push(`
+				<article class="premium-event-card is-included">
+					<button type="button" class="premium-event-toggle" data-accordion-slug="${proposal.slug}">
+						<span class="premium-event-title">${eventDisplayNames[proposal.slug] || proposal.name}</span>
+						<span class="premium-event-badge">Included</span>
+					</button>
+					<div class="premium-event-body ${premiumState.expanded.has(proposal.slug) ? 'is-open' : ''}">
+						<p class="premium-event-description">${proposal.description || ''}</p>
+						<ul class="premium-meta-list">
+							<li><strong>Coverage:</strong> ${proposal.duration || 'Custom duration'}</li>
+							<li><strong>No of creators:</strong> ${extractCreatorCount(proposal)}</li>
+							<li><strong>Delivery:</strong> ${proposal.delivery || 'Custom timeline'}</li>
+						</ul>
+						<div class="premium-date-time-row">
+							<div class="premium-date-field">
+								<label>Event Date</label>
+								<input type="date" data-date-input="${proposal.slug}" min="${todayIso}" value="${dateValue}" />
+							</div>
+							<div class="premium-date-field">
+								<label>Start Time</label>
+								<input type="time" data-time-input="${proposal.slug}" value="${timeValue}" />
+							</div>
+						</div>
+					</div>
+				</article>
+			`);
+		}
+
+		selectableEvents.forEach((pkg) => {
+			const isSelected = premiumState.selected.has(pkg.slug);
+			const disabled = !isSelected && lockNewSelections;
+			const dateValue = premiumState.dates[pkg.slug] || '';
+			const timeValue = premiumState.times[pkg.slug] || '';
+			const featureList = (pkg.features || []).length
+				? (pkg.features || []).map((feature) => `<li>${feature}</li>`).join('')
+				: '<li>Not specified</li>';
+			eventCards.push(`
+				<article class="premium-event-card ${isSelected ? 'is-selected' : ''} ${disabled ? 'is-disabled' : ''}">
+					<button type="button" class="premium-event-toggle" data-accordion-slug="${pkg.slug}">
+						<span class="premium-event-title">${eventDisplayNames[pkg.slug] || pkg.name}</span>
+						<span class="premium-event-indicator">${isSelected ? 'Selected' : (disabled ? 'Max reached' : 'Select')}</span>
+					</button>
+					<div class="premium-event-body ${premiumState.expanded.has(pkg.slug) ? 'is-open' : ''}">
+						<p class="premium-event-description">${pkg.description || ''}</p>
+						<ul class="premium-feature-list">
+							${featureList}
+						</ul>
+						<ul class="premium-meta-list">
+							<li><strong>Coverage:</strong> ${pkg.duration || 'Custom duration'}</li>
+							<li><strong>No of creators:</strong> ${extractCreatorCount(pkg)}</li>
+							<li><strong>Delivery:</strong> ${pkg.delivery || 'Custom timeline'}</li>
+						</ul>
+						<div class="premium-event-actions">
+							<button type="button" class="button ${isSelected ? 'button-outline' : 'button-primary'} premium-select-btn" data-select-event="${pkg.slug}" ${disabled ? 'disabled' : ''}>
+								${isSelected ? 'Deselect Package' : 'Select Package'}
+							</button>
+						</div>
+						${isSelected ? `
+							<div class="premium-date-time-row">
+								<div class="premium-date-field">
+									<label>Event Date</label>
+									<input type="date" data-date-input="${pkg.slug}" min="${todayIso}" value="${dateValue}" />
+								</div>
+								<div class="premium-date-field">
+									<label>Start Time</label>
+									<input type="time" data-time-input="${pkg.slug}" value="${timeValue}" />
+								</div>
+							</div>
+						` : ''}
+					</div>
+				</article>
+			`);
+		});
+
+		premiumEventsList.innerHTML = eventCards.join('');
+		renderPremiumSelectionStatus();
+		renderPremiumSelectedList();
+	}
+
 	function updateProgress() {
 		steps.forEach((step) => {
 			const isActive = Number(step.dataset.step) === currentStep;
@@ -337,33 +631,15 @@
 		});
 		stepMeta.textContent = `Step ${currentStep} of 4`;
 		stepTitle.textContent = stepTitles[currentStep] || 'Booking';
-		if (rulesCard) {
-			rulesCard.hidden = currentStep !== 2;
-		}
+		rulesCard.hidden = currentStep !== 2;
 	}
-
-	function selectPackage(slug) {
-		packageSlugInput.value = slug;
-		activePackage = selectedPackageData.find((item) => item.slug === slug) || null;
-		document.querySelectorAll('[data-pkg-card]').forEach((card) => {
-			card.classList.toggle('selected', card.dataset.pkgCard === slug);
-		});
-		syncDynamicFields();
-		availabilityPassed = false;
-		availabilityMessage.textContent = '';
-		updateDerivedInputs();
-		renderSummary();
-		currentStep = 2;
-		updateProgress();
-	}
-
-	document.querySelectorAll('.js-select-package').forEach((button) => {
-		button.addEventListener('click', () => selectPackage(button.dataset.packageSlug));
-	});
-
-	syncDynamicFields();
 
 	function requiredScheduleReady() {
+		if (!activePackage) return false;
+		if (isPremiumPackage()) {
+			return isPremiumSelectionComplete();
+		}
+
 		const baseReady = document.getElementById('bookingDate').value
 			&& document.getElementById('startTime').value
 			&& Boolean(activePackage);
@@ -384,43 +660,64 @@
 		return Number.isInteger(packageDuration) && packageDuration > 0 ? packageDuration : null;
 	}
 
-	function renderSummary() {
-		if (!summaryCard) return;
+	function renderSummaryContent() {
 		if (!activePackage) {
-			summaryCard.innerHTML = `
+			return `
 				<h3>Booking Summary</h3>
 				<p class="summary-empty">Select a package to begin.</p>
 			`;
-			return;
 		}
 
 		const selection = getSelection();
 		if (!selection && getBookingConfig()) {
-			summaryCard.innerHTML = `
+			return `
 				<h3>Booking Summary</h3>
 				<p class="summary-empty">Choose the package options to see your price.</p>
 			`;
-			return;
 		}
 
 		const total = selection?.totalPrice ?? Number(activePackage.price);
-		const deposit = Math.round(total * 0.7);
-		const balance = total - deposit;
+		const amountDueNow = total;
+		const balance = 0;
 
-		summaryCard.innerHTML = `
+		const premiumEventRows = isPremiumPackage()
+			? getSelectedPremiumEventsForValidation().map((pkg) => `
+				<div class="summary-line">
+					<span>${eventDisplayNames[pkg.slug] || pkg.name}</span>
+					<strong>${formatDisplayDate(premiumState.dates[pkg.slug])} ${premiumState.times[pkg.slug] ? `• ${premiumState.times[pkg.slug]}` : ''}</strong>
+				</div>
+			`).join('')
+			: '';
+
+		const headlineDate = isPremiumPackage()
+			? (() => {
+				const dates = Object.values(premiumState.dates).filter(Boolean).sort();
+				return dates.length ? formatDisplayDate(dates[0]) : '--';
+			})()
+			: formatDisplayDate(document.getElementById('bookingDate').value);
+
+		const headlineTime = isPremiumPackage()
+			? (() => {
+				const times = Object.values(premiumState.times).filter(Boolean).sort();
+				return times.length ? times[0] : '--';
+			})()
+			: (document.getElementById('startTime').value || '--');
+
+		return `
 			<h3>Booking Summary</h3>
 			<div class="summary-group">
-				<div class="summary-line"><span>Package</span><strong>${activePackage.name}</strong></div>
-				<div class="summary-line"><span>Date</span><strong>${formatDisplayDate(document.getElementById('bookingDate').value)}</strong></div>
-				<div class="summary-line"><span>Time</span><strong>${document.getElementById('startTime').value || '--'}</strong></div>
+				<div class="summary-line"><span>Main Package</span><strong>${activePackage.name}</strong></div>
+				<div class="summary-line"><span>Primary Date</span><strong>${headlineDate}</strong></div>
+				<div class="summary-line"><span>Coverage Window</span><strong>${headlineTime}</strong></div>
 				${selection?.selectedOptionLabel ? `<div class="summary-line"><span>Coverage Tier</span><strong>${selection.selectedOptionLabel}</strong></div>` : ''}
 				${selection?.eventType && selection.eventType !== 'Booking' ? `<div class="summary-line"><span>Event Type</span><strong>${selection.eventType}</strong></div>` : ''}
 				${selection?.numberOfVideos ? `<div class="summary-line"><span>Number of Videos</span><strong>${selection.numberOfVideos}</strong></div>` : ''}
+				${premiumEventRows ? `<p class="summary-subtitle">Selected Wedding Events</p>${premiumEventRows}` : ''}
 			</div>
 			<div class="summary-group">
-				<div class="summary-line"><span>Total Cost</span><strong>${formatCurrency(total)}</strong></div>
-				<div class="summary-line"><span>Amount Due Now</span><strong>${formatCurrency(deposit)}</strong></div>
-				<div class="summary-line"><span>Balance</span><strong>${formatCurrency(balance)}</strong></div>
+				<div class="summary-line"><span>Fixed Package Price</span><strong>${formatCurrency(total)}</strong></div>
+				<div class="summary-line"><span>Amount Due Now</span><strong>${formatCurrency(amountDueNow)}</strong></div>
+				<!-- <div class="summary-line"><span>Remaining Balance</span><strong>${formatCurrency(balance)}</strong></div> -->
 			</div>
 			<div class="summary-group">
 				<p class="summary-subtitle">Customer Information</p>
@@ -432,16 +729,102 @@
 		`;
 	}
 
+	function renderSummary() {
+		summaryCard.innerHTML = renderSummaryContent();
+	}
+
+	function selectPackage(slug) {
+		packageSlugInput.value = slug;
+		activePackage = selectedPackageData.find((item) => item.slug === slug) || null;
+		document.querySelectorAll('[data-pkg-card]').forEach((card) => {
+			card.classList.toggle('selected', card.dataset.pkgCard === slug);
+		});
+		availabilityPassed = false;
+		availabilityMessage.textContent = '';
+		resetPremiumState();
+		syncDynamicFields();
+		syncStepMode();
+		renderPremiumEvents();
+		updateDerivedInputs();
+		renderSummary();
+		currentStep = 2;
+		updateProgress();
+	}
+
+	document.querySelectorAll('.js-select-package').forEach((button) => {
+		button.addEventListener('click', () => selectPackage(button.dataset.packageSlug));
+	});
+
+	premiumEventsList.addEventListener('click', (event) => {
+		const accordionTarget = event.target.closest('[data-accordion-slug]');
+		if (accordionTarget) {
+			const slug = accordionTarget.dataset.accordionSlug;
+			if (premiumState.expanded.has(slug)) {
+				premiumState.expanded.delete(slug);
+			} else {
+				premiumState.expanded.add(slug);
+			}
+			renderPremiumEvents();
+			return;
+		}
+
+		const selectTarget = event.target.closest('[data-select-event]');
+		if (!selectTarget) return;
+		const slug = selectTarget.dataset.selectEvent;
+		if (!slug) return;
+
+		availabilityPassed = false;
+		availabilityMessage.textContent = '';
+		if (premiumState.selected.has(slug)) {
+			premiumState.selected.delete(slug);
+			delete premiumState.dates[slug];
+			delete premiumState.times[slug];
+		} else {
+			const { requiredAdditional } = getPremiumRequirement();
+			if (premiumState.selected.size < requiredAdditional) {
+				premiumState.selected.add(slug);
+			}
+		}
+
+		renderPremiumEvents();
+		updateDerivedInputs();
+		renderSummary();
+	});
+
+	premiumEventsList.addEventListener('input', (event) => {
+		const dateInput = event.target.closest('[data-date-input]');
+		const timeInput = event.target.closest('[data-time-input]');
+		if (!dateInput && !timeInput) return;
+		const slug = dateInput ? dateInput.dataset.dateInput : timeInput.dataset.timeInput;
+		if (!slug) return;
+
+		availabilityPassed = false;
+		availabilityMessage.textContent = '';
+		if (dateInput) {
+			premiumState.dates[slug] = dateInput.value;
+		}
+		if (timeInput) {
+			premiumState.times[slug] = timeInput.value;
+		}
+		updateDerivedInputs();
+		renderSummary();
+		renderPremiumSelectedList();
+		renderPremiumSelectionStatus();
+	});
+
 	document.getElementById('check-availability').addEventListener('click', async () => {
 		if (!requiredScheduleReady()) {
 			availabilityMessage.className = 'booking-status error';
-			availabilityMessage.textContent = 'Please complete all schedule fields first.';
+			availabilityMessage.textContent = isPremiumPackage()
+				? 'Please complete package selections and event dates first.'
+				: 'Please complete all schedule fields first.';
 			return;
 		}
 
 		availabilityMessage.className = 'booking-status loading';
 		availabilityMessage.textContent = 'Checking availability...';
 		availabilityPassed = false;
+		updateDerivedInputs();
 
 		const payload = {
 			bookingDate: document.getElementById('bookingDate').value,
@@ -449,6 +832,9 @@
 			durationMinutes: getSelectedDurationMinutes(),
 			selectedHours: selectedHoursInput.value,
 			selectedVideos: selectedVideosInput.value,
+			selectedWeddingEvents: selectedWeddingEventsInput.value,
+			selectedEventDates: selectedEventDatesInput.value,
+			selectedEventTimes: selectedEventTimesInput.value,
 			packageSlug: packageSlugInput.value,
 			_csrf: document.querySelector('input[name="_csrf"]').value,
 		};
@@ -480,12 +866,11 @@
 			availabilityPassed = true;
 			availabilityMessage.className = 'booking-status success';
 			availabilityMessage.textContent = data.message;
-			updateDerivedInputs();
 			renderSummary();
 			setTimeout(() => {
 				currentStep = 3;
 				updateProgress();
-			}, 500);
+			}, 400);
 		} catch (error) {
 			availabilityMessage.className = 'booking-status error';
 			availabilityMessage.textContent = 'Unable to check availability right now. Please try again.';
@@ -504,7 +889,10 @@
 		const requiredFields = ['fullName', 'phone', 'email', 'eventAddress'];
 		const invalid = requiredFields.some((id) => !document.getElementById(id).value.trim());
 		if (invalid) {
-			alert('Please complete all required client details.');
+			availabilityMessage.className = 'booking-status error';
+			availabilityMessage.textContent = 'Please complete all required client details.';
+			currentStep = 3;
+			updateProgress();
 			return;
 		}
 
@@ -515,7 +903,6 @@
 	});
 
 	[selectedHoursInput, selectedVideosInput, eventTypeSelect].forEach((input) => {
-		if (!input) return;
 		input.addEventListener('change', () => {
 			availabilityPassed = false;
 			availabilityMessage.textContent = '';
@@ -526,7 +913,6 @@
 
 	['bookingDate', 'startTime', 'fullName', 'phone', 'email', 'eventAddress', 'notes'].forEach((id) => {
 		const input = document.getElementById(id);
-		if (!input) return;
 		input.addEventListener('input', () => {
 			if (id === 'bookingDate' || id === 'startTime') {
 				availabilityPassed = false;
@@ -535,14 +921,6 @@
 			renderSummary();
 		});
 	});
-
-	if (packageSlugInput.value) {
-		selectPackage(packageSlugInput.value);
-	} else {
-		syncDynamicFields();
-		updateDerivedInputs();
-		renderSummary();
-	}
 
 	document.getElementById('back-to-schedule').addEventListener('click', () => {
 		currentStep = 2;
@@ -569,8 +947,26 @@
 			updateProgress();
 			return;
 		}
+		if (isPremiumPackage() && !isPremiumSelectionComplete()) {
+			event.preventDefault();
+			availabilityMessage.className = 'booking-status error';
+			availabilityMessage.textContent = 'Please finish your premium package selections and event dates.';
+			currentStep = 2;
+			updateProgress();
+			return;
+		}
 		updateDerivedInputs();
 	});
+
+	if (packageSlugInput.value) {
+		selectPackage(packageSlugInput.value);
+	} else {
+		syncDynamicFields();
+		syncStepMode();
+		updateDerivedInputs();
+		renderSummary();
+		updateProgress();
+	}
 
 	renderSummary();
 	updateProgress();

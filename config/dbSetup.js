@@ -69,6 +69,8 @@ export async function ensureDatabase() {
       location TEXT NOT NULL,
       event_type TEXT NOT NULL,
       event_address TEXT NOT NULL,
+      selected_wedding_events JSONB NOT NULL DEFAULT '[]'::jsonb,
+      selected_event_dates JSONB NOT NULL DEFAULT '{}'::jsonb,
       customer_name TEXT NOT NULL,
       customer_phone TEXT NOT NULL,
       customer_email TEXT NOT NULL,
@@ -104,6 +106,8 @@ export async function ensureDatabase() {
       location TEXT NOT NULL,
       event_type TEXT NOT NULL,
       event_address TEXT NOT NULL,
+      selected_wedding_events JSONB NOT NULL DEFAULT '[]'::jsonb,
+      selected_event_dates JSONB NOT NULL DEFAULT '{}'::jsonb,
       customer_name TEXT NOT NULL,
       customer_phone TEXT NOT NULL,
       customer_email TEXT NOT NULL,
@@ -142,6 +146,8 @@ export async function ensureDatabase() {
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS number_of_videos INTEGER;`);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS deposit_amount INTEGER;`);
   await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS remaining_balance INTEGER;`);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_wedding_events JSONB NOT NULL DEFAULT '[]'::jsonb;`);
+  await db.query(`ALTER TABLE bookings ADD COLUMN IF NOT EXISTS selected_event_dates JSONB NOT NULL DEFAULT '{}'::jsonb;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS package_type TEXT NOT NULL DEFAULT 'standard';`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS hourly_rate INTEGER;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS selected_hours INTEGER;`);
@@ -150,11 +156,13 @@ export async function ensureDatabase() {
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS number_of_videos INTEGER;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS deposit_amount INTEGER;`);
   await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS remaining_balance INTEGER;`);
+  await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS selected_wedding_events JSONB NOT NULL DEFAULT '[]'::jsonb;`);
+  await db.query(`ALTER TABLE booking_holds ADD COLUMN IF NOT EXISTS selected_event_dates JSONB NOT NULL DEFAULT '{}'::jsonb;`);
 
   await db.query(`
     UPDATE bookings
-    SET deposit_amount = COALESCE(deposit_amount, ROUND(package_price * 0.7)),
-        remaining_balance = COALESCE(remaining_balance, package_price - ROUND(package_price * 0.7))
+    SET deposit_amount = COALESCE(deposit_amount, package_price),
+        remaining_balance = COALESCE(remaining_balance, 0)
     WHERE deposit_amount IS NULL OR remaining_balance IS NULL;
   `);
 
@@ -167,8 +175,8 @@ export async function ensureDatabase() {
 
   await db.query(`
     UPDATE booking_holds
-    SET deposit_amount = COALESCE(deposit_amount, ROUND(package_price * 0.7)),
-        remaining_balance = COALESCE(remaining_balance, package_price - ROUND(package_price * 0.7))
+    SET deposit_amount = COALESCE(deposit_amount, package_price),
+        remaining_balance = COALESCE(remaining_balance, 0)
     WHERE deposit_amount IS NULL OR remaining_balance IS NULL;
   `);
 

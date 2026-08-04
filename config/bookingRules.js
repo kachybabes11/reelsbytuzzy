@@ -1,11 +1,11 @@
 const bookingRules = [
   {
     title: "Booking Confirmation",
-    body: "Bookings are confirmed only upon receipt of a 70% non-refundable deposit. Dates are not reserved until payment has been received.",
+    body: "Bookings are confirmed only upon receipt of full payment. Dates are not reserved until payment has been received.",
   },
   {
-    title: "Balance Payment",
-    body: "The remaining 30% balance must be paid before the final edited content is delivered.",
+    title: "Payment Policy",
+    body: "All bookings are paid in full at checkout before confirmation.",
   },
   {
     title: "Cancellation",

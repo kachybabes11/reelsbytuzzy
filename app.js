@@ -59,6 +59,17 @@ const bookingBufferMinutes = Number(process.env.BOOKING_BUFFER_MINUTES || 60);
 const adminEmail = process.env.ADMIN_EMAIL || "reelsbytuzzy@gmail.com";
 const resendFromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
 const passwordResetMinutes = Number(process.env.PASSWORD_RESET_TOKEN_MINUTES || 30);
+const premiumMainPackageSlugs = new Set(["yes-to-forever", "full-wedding-experience"]);
+const premiumEventSlugs = [
+  "premium-civil-package",
+  "premium-white-wedding-package",
+  "premium-nikkah-wedding-package",
+  "trad-wedding-package",
+  "pre-wedding",
+  "introduction-package",
+];
+const proposalPackageSlug = "proposal-package";
+const premiumSlotStartTime = "09:00";
 
 if (process.env.NODE_ENV === "production") {
   app.set("trust proxy", 1);
@@ -210,14 +221,266 @@ function calculateBookingSelection(pkg, { selectedHours, selectedVideos }) {
 
 function calculateBookingAmounts(totalPrice) {
   const parsedTotal = Number(totalPrice);
-  const depositAmount = Math.round(parsedTotal * (depositPercentage / 100));
-  const remainingBalance = parsedTotal - depositAmount;
+  const depositAmount = parsedTotal;
+  const remainingBalance = 0;
 
   return {
     totalPrice: parsedTotal,
     depositAmount,
     remainingBalance,
   };
+}
+
+function isPremiumMainPackage(pkgOrSlug) {
+  const slug = typeof pkgOrSlug === "string" ? pkgOrSlug : pkgOrSlug?.slug;
+  return premiumMainPackageSlugs.has(String(slug || "").trim());
+}
+
+function normalizeIsoDate(value) {
+  const normalized = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(normalized)) {
+    return null;
+  }
+  return normalized;
+}
+
+function getTodayIsoDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function safeJsonParse(value, fallback) {
+  if (value == null || value === "") {
+    return fallback;
+  }
+  if (typeof value !== "string") {
+    return value;
+  }
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function normalizeSelectedEventDateMap(rawValue) {
+  const parsed = safeJsonParse(rawValue, {});
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return {};
+  }
+
+  return Object.entries(parsed).reduce((accumulator, [slug, dateValue]) => {
+    const normalizedSlug = String(slug || "").trim();
+    const normalizedDate = normalizeIsoDate(dateValue);
+    if (normalizedSlug && normalizedDate) {
+      accumulator[normalizedSlug] = normalizedDate;
+    }
+    return accumulator;
+  }, {});
+}
+
+function getPremiumEventCatalogFromPackages(allPackages) {
+  const packageMap = new Map(allPackages.map((pkg) => [pkg.slug, pkg]));
+  return {
+    selectableEvents: premiumEventSlugs
+      .map((slug) => packageMap.get(slug))
+      .filter(Boolean),
+    proposal: packageMap.get(proposalPackageSlug) || null,
+  };
+}
+
+function buildPremiumSelection({ selectedPackage, allPackages, selectedWeddingEventsRaw, selectedEventDatesRaw }) {
+  const isYesToForever = selectedPackage?.slug === "yes-to-forever";
+  const isFullWedding = selectedPackage?.slug === "full-wedding-experience";
+  if (!isYesToForever && !isFullWedding) {
+    return {
+      ok: false,
+      message: "This package does not use premium wedding customization.",
+    };
+  }
+
+  const { selectableEvents, proposal } = getPremiumEventCatalogFromPackages(allPackages);
+  if (!selectableEvents.length || (isYesToForever && !proposal)) {
+    return {
+      ok: false,
+      message: "Wedding event options are temporarily unavailable. Please contact support.",
+    };
+  }
+
+  const selectedWeddingEventsValue = safeJsonParse(selectedWeddingEventsRaw, []);
+  const selectedWeddingEvents = Array.isArray(selectedWeddingEventsValue)
+    ? selectedWeddingEventsValue.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  const uniqueSelectedSlugs = [...new Set(selectedWeddingEvents)];
+  const selectedDateMap = normalizeSelectedEventDateMap(selectedEventDatesRaw);
+  const todayIso = getTodayIsoDate();
+  const selectableEventMap = new Map(selectableEvents.map((pkg) => [pkg.slug, pkg]));
+
+  if (uniqueSelectedSlugs.some((slug) => !selectableEventMap.has(slug))) {
+    return {
+      ok: false,
+      message: "One or more selected wedding events are invalid. Please reselect your events.",
+    };
+  }
+
+  const additionalRequiredCount = isYesToForever ? 2 : 3;
+  if (uniqueSelectedSlugs.length !== additionalRequiredCount) {
+    return {
+      ok: false,
+      message: isYesToForever
+        ? "Please select exactly two additional wedding events."
+        : "Please select exactly three wedding events.",
+    };
+  }
+
+  const allChosenEvents = isYesToForever
+    ? [proposal, ...uniqueSelectedSlugs.map((slug) => selectableEventMap.get(slug))]
+    : uniqueSelectedSlugs.map((slug) => selectableEventMap.get(slug));
+
+  const selectedEvents = allChosenEvents.map((pkg) => {
+    const rawDuration = Number(pkg?.durationMinutes || selectedPackage?.durationMinutes || 480);
+    return {
+      slug: pkg.slug,
+      name: pkg.name,
+      durationMinutes: Number.isInteger(rawDuration) && rawDuration >= 30 ? rawDuration : 480,
+      bookingDate: selectedDateMap[pkg.slug] || null,
+    };
+  });
+
+  const missingDateEvent = selectedEvents.find((eventItem) => !eventItem.bookingDate);
+  if (missingDateEvent) {
+    return {
+      ok: false,
+      message: `Please choose an event date for ${missingDateEvent.name}.`,
+    };
+  }
+
+  const pastDateEvent = selectedEvents.find((eventItem) => eventItem.bookingDate < todayIso);
+  if (pastDateEvent) {
+    return {
+      ok: false,
+      message: `The selected date for ${pastDateEvent.name} is in the past. Please choose a future date.`,
+    };
+  }
+
+  const sortedEvents = [...selectedEvents].sort((left, right) => {
+    if (left.bookingDate < right.bookingDate) return -1;
+    if (left.bookingDate > right.bookingDate) return 1;
+    return left.name.localeCompare(right.name);
+  });
+
+  return {
+    ok: true,
+    selectedEvents,
+    selectedWeddingEvents: selectedEvents.map((eventItem) => ({
+      slug: eventItem.slug,
+      name: eventItem.name,
+      durationMinutes: eventItem.durationMinutes,
+    })),
+    selectedEventDates: selectedEvents.reduce((accumulator, eventItem) => {
+      accumulator[eventItem.slug] = eventItem.bookingDate;
+      return accumulator;
+    }, {}),
+    primaryBookingDate: sortedEvents[0]?.bookingDate || null,
+  };
+}
+
+async function checkPremiumEventAvailability({ selectedEvents, excludeHoldToken = null, client = db }) {
+  const unavailableEvents = [];
+
+  for (const eventItem of selectedEvents) {
+    const endTime = calculateEndTime(premiumSlotStartTime, Number(eventItem.durationMinutes || 480));
+    if (!endTime) {
+      unavailableEvents.push({
+        name: eventItem.name,
+        date: eventItem.bookingDate,
+        reason: "This event duration is invalid.",
+      });
+      continue;
+    }
+
+    const counts = await countConcurrentSlotUsage({
+      bookingDate: eventItem.bookingDate,
+      startTime: premiumSlotStartTime,
+      endTime,
+      excludeHoldToken,
+      client,
+    });
+
+    if (counts.confirmedCount + counts.holdCount >= maxConcurrentBookingsPerSlot) {
+      unavailableEvents.push({
+        name: eventItem.name,
+        date: eventItem.bookingDate,
+        reason: "Date is unavailable.",
+      });
+    }
+  }
+
+  return {
+    available: unavailableEvents.length === 0,
+    unavailableEvents,
+  };
+}
+
+function formatEventDateForDisplay(dateValue) {
+  const normalized = normalizeIsoDate(dateValue);
+  if (!normalized) {
+    return "Date unavailable";
+  }
+  const parsedDate = new Date(`${normalized}T00:00:00`);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return normalized;
+  }
+  return parsedDate.toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+}
+
+function getPremiumEventSummaryLines(booking) {
+  const selectedWeddingEventsValue = safeJsonParse(booking?.selected_wedding_events, []);
+  const selectedEventDates = normalizeSelectedEventDateMap(booking?.selected_event_dates);
+  const selectedWeddingEvents = Array.isArray(selectedWeddingEventsValue) ? selectedWeddingEventsValue : [];
+
+  return selectedWeddingEvents
+    .map((eventItem) => {
+      const slug = String(eventItem?.slug || "").trim();
+      const name = String(eventItem?.name || "").trim();
+      if (!slug || !name) {
+        return null;
+      }
+      const dateLabel = formatEventDateForDisplay(selectedEventDates[slug]);
+      return `${name} - ${dateLabel}`;
+    })
+    .filter(Boolean);
+}
+
+function getStoredPremiumSelectedEvents(bookingLike) {
+  const selectedWeddingEventsValue = safeJsonParse(bookingLike?.selected_wedding_events, []);
+  const selectedEventDates = normalizeSelectedEventDateMap(bookingLike?.selected_event_dates);
+  const selectedWeddingEvents = Array.isArray(selectedWeddingEventsValue) ? selectedWeddingEventsValue : [];
+
+  return selectedWeddingEvents
+    .map((eventItem) => {
+      const slug = String(eventItem?.slug || "").trim();
+      const name = String(eventItem?.name || "").trim();
+      const durationMinutes = parseDurationMinutes(eventItem?.durationMinutes) || 480;
+      const bookingDate = selectedEventDates[slug] || null;
+      if (!slug || !name || !bookingDate) {
+        return null;
+      }
+      return {
+        slug,
+        name,
+        durationMinutes,
+        bookingDate,
+      };
+    })
+    .filter(Boolean);
 }
 
 function buildSlotOverlapClause(dateValueReference, startTimeReference, endTimeReference, bufferReference) {
@@ -324,6 +587,10 @@ function buildBookingEmailHtml({ title, intro, booking }) {
   const videosLine = booking.number_of_videos
     ? `<li><strong>Number of Videos:</strong> ${escapeHtml(booking.number_of_videos)}</li>`
     : "";
+  const premiumEventLines = getPremiumEventSummaryLines(booking);
+  const premiumEventsLine = premiumEventLines.length
+    ? `<li><strong>Selected Wedding Events:</strong><ul style="margin:8px 0 0 14px;padding:0">${premiumEventLines.map((line) => `<li>${escapeHtml(line)}</li>`).join("")}</ul></li>`
+    : "";
 
   return `
     <div style="font-family:Arial,sans-serif;line-height:1.6;color:#111;max-width:640px">
@@ -336,14 +603,14 @@ function buildBookingEmailHtml({ title, intro, booking }) {
         <li><strong>Time:</strong> ${escapeHtml(booking.start_time)} - ${escapeHtml(booking.end_time)}</li>
         ${optionLine}
         ${videosLine}
+        ${premiumEventsLine}
         <li><strong>Event Type:</strong> ${escapeHtml(booking.event_type || "Booking")}</li>
         <li><strong>Event Address:</strong> ${escapeHtml(booking.event_address)}</li>
         <li><strong>Customer:</strong> ${escapeHtml(booking.customer_name)}</li>
         <li><strong>Phone:</strong> ${escapeHtml(booking.customer_phone)}</li>
         <li><strong>Email:</strong> ${escapeHtml(booking.customer_email)}</li>
         <li><strong>Total:</strong> ${escapeHtml(formatCurrency(booking.package_price))}</li>
-        <li><strong>Deposit Paid:</strong> ${escapeHtml(formatCurrency(booking.deposit_amount))}</li>
-        <li><strong>Remaining Balance:</strong> ${escapeHtml(formatCurrency(booking.remaining_balance))}</li>
+        <li><strong>Amount Paid:</strong> ${escapeHtml(formatCurrency(booking.deposit_amount))}</li>
       </ul>
       <p style="margin:0">Thank you for choosing Reels By Tuzzy.</p>
     </div>
@@ -357,13 +624,17 @@ function buildBookingEmailText({ title, intro, booking }) {
   const videosLine = booking.number_of_videos
     ? `Number of Videos: ${booking.number_of_videos}\n`
     : "";
+  const premiumEventLines = getPremiumEventSummaryLines(booking);
+  const premiumEventsLine = premiumEventLines.length
+    ? `Selected Wedding Events:\n- ${premiumEventLines.join("\n- ")}\n`
+    : "";
 
-  return `${title}\n\n${intro}\n\nBooking Reference: ${booking.booking_reference}\nPackage: ${booking.package_name}\nBooking Date: ${booking.booking_date}\nTime: ${booking.start_time} - ${booking.end_time}\n${optionLine}${videosLine}Event Type: ${booking.event_type || "Booking"}\nEvent Address: ${booking.event_address}\nCustomer: ${booking.customer_name}\nPhone: ${booking.customer_phone}\nEmail: ${booking.customer_email}\nTotal: ${formatCurrency(booking.package_price)}\nDeposit Paid: ${formatCurrency(booking.deposit_amount)}\nRemaining Balance: ${formatCurrency(booking.remaining_balance)}\n`;
+  return `${title}\n\n${intro}\n\nBooking Reference: ${booking.booking_reference}\nPackage: ${booking.package_name}\nBooking Date: ${booking.booking_date}\nTime: ${booking.start_time} - ${booking.end_time}\n${optionLine}${videosLine}${premiumEventsLine}Event Type: ${booking.event_type || "Booking"}\nEvent Address: ${booking.event_address}\nCustomer: ${booking.customer_name}\nPhone: ${booking.customer_phone}\nEmail: ${booking.customer_email}\nTotal: ${formatCurrency(booking.package_price)}\nAmount Paid: ${formatCurrency(booking.deposit_amount)}\n`;
 }
 
 async function sendBookingConfirmationEmails(booking) {
   const customerSubject = `Booking Confirmed: ${booking.booking_reference}`;
-  const customerIntro = "Your booking deposit was received and your booking is now confirmed.";
+  const customerIntro = "Your full payment was received and your booking is now confirmed.";
   const customerHtml = buildBookingEmailHtml({
     title: "Booking Confirmation",
     intro: customerIntro,
@@ -630,8 +901,56 @@ app.get("/bookings", async (req, res, next) => {
 
 app.post("/bookings/check-availability", async (req, res, next) => {
   try {
-    const { packageSlug, bookingDate, startTime, durationMinutes, selectedHours, selectedVideos } = req.body;
+    const {
+      packageSlug,
+      bookingDate,
+      startTime,
+      durationMinutes,
+      selectedHours,
+      selectedVideos,
+      selectedWeddingEvents,
+      selectedEventDates,
+    } = req.body;
     const selectedPackage = await getPackageBySlug(packageSlug);
+    const premiumPackageSelected = isPremiumMainPackage(selectedPackage);
+
+    if (premiumPackageSelected) {
+      const allPackages = await getPackages();
+      const premiumSelection = buildPremiumSelection({
+        selectedPackage,
+        allPackages,
+        selectedWeddingEventsRaw: selectedWeddingEvents,
+        selectedEventDatesRaw: selectedEventDates,
+      });
+
+      if (!premiumSelection.ok) {
+        return res.status(400).json({
+          available: false,
+          message: premiumSelection.message,
+        });
+      }
+
+      const premiumAvailability = await checkPremiumEventAvailability({
+        selectedEvents: premiumSelection.selectedEvents,
+      });
+
+      if (!premiumAvailability.available) {
+        const unavailableMessage = premiumAvailability.unavailableEvents
+          .map((eventItem) => `${eventItem.name} on ${formatEventDateForDisplay(eventItem.date)} is unavailable.`)
+          .join(" ");
+
+        return res.status(409).json({
+          available: false,
+          message: unavailableMessage || "One or more selected event dates are unavailable.",
+        });
+      }
+
+      return res.json({
+        available: true,
+        message: "Great news. Every selected wedding event date is available.",
+      });
+    }
+
     const bookingConfig = getBookingConfig(selectedPackage);
     const bookingSelection = bookingConfig
       ? calculateBookingSelection(selectedPackage, { selectedHours, selectedVideos })
@@ -695,6 +1014,8 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       durationMinutes,
       selectedHours,
       selectedVideos,
+      selectedWeddingEvents,
+      selectedEventDates,
       eventType,
       fullName,
       phone,
@@ -706,6 +1027,7 @@ app.post("/bookings/start-payment", async (req, res, next) => {
     const selectedPackage = await getPackageBySlug(packageSlug);
     const maxHourlyBookingHours = await getMaxHourlyBookingHours();
     const bookingConfig = getBookingConfig(selectedPackage);
+    const premiumPackageSelected = isPremiumMainPackage(selectedPackage);
     const bookingSelection = bookingConfig
       ? calculateBookingSelection(selectedPackage, { selectedHours, selectedVideos })
       : null;
@@ -716,11 +1038,24 @@ app.post("/bookings/start-payment", async (req, res, next) => {
         : null
       : parseDurationMinutes(selectedPackage?.durationMinutes || durationMinutes);
     const parsedVideos = bookingSelection?.numberOfVideos || null;
+    const allPackages = premiumPackageSelected ? await getPackages() : null;
+    const premiumSelection = premiumPackageSelected
+      ? buildPremiumSelection({
+        selectedPackage,
+        allPackages,
+        selectedWeddingEventsRaw: selectedWeddingEvents,
+        selectedEventDatesRaw: selectedEventDates,
+      })
+      : null;
+    const normalizedBookingDate = premiumPackageSelected
+      ? premiumSelection?.primaryBookingDate
+      : bookingDate;
+    const normalizedStartTime = premiumPackageSelected ? premiumSlotStartTime : startTime;
 
     if (
       !selectedPackage ||
-      !bookingDate ||
-      !startTime ||
+      !normalizedBookingDate ||
+      !normalizedStartTime ||
       !parsedDuration ||
       !fullName ||
       !phone ||
@@ -728,6 +1063,14 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       !eventAddress
     ) {
       req.session.messages = [{ type: "error", text: "Please complete all required booking fields." }];
+      return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+    }
+
+    if (premiumPackageSelected && !premiumSelection?.ok) {
+      req.session.messages = [{
+        type: "error",
+        text: premiumSelection?.message || "Please complete your wedding package selections and event dates.",
+      }];
       return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
     }
 
@@ -753,27 +1096,51 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       }
     }
 
-    const endTime = calculateEndTime(startTime, parsedDuration);
+    const endTime = calculateEndTime(normalizedStartTime, parsedDuration);
     if (!endTime) {
       req.session.messages = [{ type: "error", text: "Selected time range is invalid." }];
       return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
     }
 
-    const stillAvailable = await isSlotAvailable({ bookingDate, startTime, endTime });
-    if (!stillAvailable) {
-      req.session.messages = [{
-        type: "error",
-        text: "That slot is no longer available. Please choose another date or time.",
-      }];
-      return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+    if (premiumPackageSelected) {
+      const premiumAvailability = await checkPremiumEventAvailability({
+        selectedEvents: premiumSelection.selectedEvents,
+      });
+
+      if (!premiumAvailability.available) {
+        const unavailableMessage = premiumAvailability.unavailableEvents
+          .map((eventItem) => `${eventItem.name} on ${formatEventDateForDisplay(eventItem.date)} is unavailable.`)
+          .join(" ");
+
+        req.session.messages = [{
+          type: "error",
+          text: unavailableMessage || "One or more selected event dates are unavailable.",
+        }];
+        return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+      }
+    } else {
+      const stillAvailable = await isSlotAvailable({ bookingDate, startTime, endTime });
+      if (!stillAvailable) {
+        req.session.messages = [{
+          type: "error",
+          text: "That slot is no longer available. Please choose another date or time.",
+        }];
+        return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
+      }
     }
 
     const totalPrice = bookingSelection?.totalPrice || Number(selectedPackage.price);
     const { depositAmount, remainingBalance } = calculateBookingAmounts(totalPrice);
     const selectedOptionLabel = bookingSelection?.selectedOptionLabel || null;
     const selectedOptionPrice = bookingSelection?.selectedOptionPrice || null;
-    const eventTypeValue = bookingConfig?.mode === "hourly-booking" ? String(eventType || "").trim() : "Booking";
+    const eventTypeValue = bookingConfig?.mode === "hourly-booking"
+      ? String(eventType || "").trim()
+      : premiumPackageSelected
+        ? "Wedding Collection"
+        : "Booking";
     const hourlyRate = bookingConfig ? selectedOptionPrice : selectedPackage.hourlyRate;
+    const selectedWeddingEventsPayload = premiumPackageSelected ? premiumSelection.selectedWeddingEvents : [];
+    const selectedEventDatesPayload = premiumPackageSelected ? premiumSelection.selectedEventDates : {};
 
     const holdToken = generateReference("HOLD");
     const paymentReference = generateReference("PAY");
@@ -784,13 +1151,15 @@ app.post("/bookings/start-payment", async (req, res, next) => {
         hourly_rate, selected_hours, selected_option_label, selected_option_price, number_of_videos, deposit_amount, remaining_balance,
         booking_date, start_time, end_time, duration_minutes, location,
         event_type, event_address, customer_name, customer_phone, customer_email,
+        selected_wedding_events, selected_event_dates,
         additional_notes, payment_reference, status, expires_at
       ) VALUES (
         $1, $2, $3, $4, $5, $6,
         $7, $8, $9, $10, $11, $12, $13,
         $14, $15::time, $16::time, $17, $18,
         $19, $20, $21, $22, $23,
-        $24, $25, 'active', now() + make_interval(mins => $26)
+        $24::jsonb, $25::jsonb,
+        $26, $27, 'active', now() + make_interval(mins => $28)
       )`,
       [
         holdToken,
@@ -806,8 +1175,8 @@ app.post("/bookings/start-payment", async (req, res, next) => {
         parsedVideos,
         depositAmount,
         remainingBalance,
-        bookingDate,
-        startTime,
+        normalizedBookingDate,
+        normalizedStartTime,
         endTime,
         parsedDuration,
         eventAddress,
@@ -816,6 +1185,8 @@ app.post("/bookings/start-payment", async (req, res, next) => {
         fullName,
         phone,
         email,
+        JSON.stringify(selectedWeddingEventsPayload),
+        JSON.stringify(selectedEventDatesPayload),
         notes || null,
         paymentReference,
         holdMinutes,
@@ -825,17 +1196,19 @@ app.post("/bookings/start-payment", async (req, res, next) => {
     try {
       const initResponse = await initializePaystackPayment({
         email,
-        amount: depositAmount * 100,
+        amount: totalPrice * 100,
         reference: paymentReference,
         callback_url: `${appBaseUrl}/bookings/payment/callback`,
         metadata: {
           holdToken,
           packageSlug: selectedPackage.slug,
-          bookingDate,
-          startTime,
+          bookingDate: normalizedBookingDate,
+          startTime: normalizedStartTime,
           durationMinutes: parsedDuration,
           selectedHours: parsedHours,
           selectedVideos: parsedVideos,
+          selectedWeddingEvents: selectedWeddingEventsPayload,
+          selectedEventDates: selectedEventDatesPayload,
           packageType: selectedPackage.packageType,
           totalPrice,
           depositAmount,
@@ -870,6 +1243,8 @@ app.post("/bookings/start-payment", async (req, res, next) => {
           numberOfVideos: parsedVideos,
           videoPrice: bookingSelection?.videoPrice || null,
           eventType: eventTypeValue || 'Booking',
+          selectedWeddingEvents: selectedWeddingEventsPayload,
+          selectedEventDates: selectedEventDatesPayload,
         },
       });
     } catch (paymentError) {
@@ -893,7 +1268,7 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
 
   try {
     const existingBooking = await db.query(
-      `SELECT booking_reference, package_name, booking_date
+      `SELECT booking_reference, package_name, booking_date, selected_wedding_events, selected_event_dates
        FROM bookings
        WHERE payment_reference = $1
        LIMIT 1`,
@@ -907,10 +1282,12 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         bookingReference: row.booking_reference,
         packageName: row.package_name,
         bookingDate: row.booking_date,
+        selectedWeddingEvents: safeJsonParse(row.selected_wedding_events, []),
+        selectedEventDates: normalizeSelectedEventDateMap(row.selected_event_dates),
         bookingRules,
         depositPercentage,
         remainingBalancePercentage,
-        paymentStatus: "Deposit Paid",
+        paymentStatus: "Paid in Full",
         message: "Your booking has already been confirmed.",
       });
     }
@@ -923,6 +1300,8 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         bookingReference: null,
         packageName: null,
         bookingDate: null,
+        selectedWeddingEvents: [],
+        selectedEventDates: {},
         bookingRules,
         depositPercentage,
         remainingBalancePercentage,
@@ -956,6 +1335,8 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           bookingReference: null,
           packageName: null,
           bookingDate: null,
+          selectedWeddingEvents: [],
+          selectedEventDates: {},
           bookingRules,
           depositPercentage,
           remainingBalancePercentage,
@@ -965,6 +1346,8 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
       }
 
       const hold = holdResult.rows[0];
+      const premiumSelectedEventsFromHold = getStoredPremiumSelectedEvents(hold);
+      const holdUsesPremiumDates = premiumSelectedEventsFromHold.length > 0;
 
       if (hold.status !== "active" || new Date(hold.expires_at).getTime() <= Date.now()) {
         await client.query(
@@ -977,6 +1360,8 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           bookingReference: null,
           packageName: hold.package_name,
           bookingDate: hold.booking_date,
+          selectedWeddingEvents: safeJsonParse(hold.selected_wedding_events, []),
+          selectedEventDates: normalizeSelectedEventDateMap(hold.selected_event_dates),
           bookingRules,
           depositPercentage,
           remainingBalancePercentage,
@@ -985,16 +1370,39 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         });
       }
 
-      const conflictCheck = await client.query(
-        `SELECT COUNT(*)::int AS count
-         FROM bookings
-         WHERE status = 'confirmed'
-           AND booking_date = $1
-           AND ${buildSlotOverlapClause("$1", "$2", "$3", "$4")}`,
-        [hold.booking_date, hold.start_time, hold.end_time, bookingBufferMinutes]
-      );
+      let hasConflict = false;
+      let conflictMessage = "Another customer completed this slot during payment verification. Please contact support for resolution or refund.";
 
-      if ((conflictCheck.rows[0]?.count || 0) >= maxConcurrentBookingsPerSlot) {
+      if (holdUsesPremiumDates) {
+        const premiumAvailability = await checkPremiumEventAvailability({
+          selectedEvents: premiumSelectedEventsFromHold,
+          excludeHoldToken: hold.hold_token,
+          client,
+        });
+
+        if (!premiumAvailability.available) {
+          hasConflict = true;
+          const unavailableMessage = premiumAvailability.unavailableEvents
+            .map((eventItem) => `${eventItem.name} on ${formatEventDateForDisplay(eventItem.date)} is no longer available.`)
+            .join(" ");
+          conflictMessage = unavailableMessage || "One or more selected event dates are no longer available.";
+        }
+      } else {
+        const conflictCheck = await client.query(
+          `SELECT COUNT(*)::int AS count
+           FROM bookings
+           WHERE status = 'confirmed'
+             AND booking_date = $1
+             AND ${buildSlotOverlapClause("$1", "$2", "$3", "$4")}`,
+          [hold.booking_date, hold.start_time, hold.end_time, bookingBufferMinutes]
+        );
+
+        if ((conflictCheck.rows[0]?.count || 0) >= maxConcurrentBookingsPerSlot) {
+          hasConflict = true;
+        }
+      }
+
+      if (hasConflict) {
         await client.query(
           `UPDATE booking_holds SET status = 'released', updated_at = now() WHERE id = $1`,
           [hold.id]
@@ -1005,11 +1413,13 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           bookingReference: null,
           packageName: hold.package_name,
           bookingDate: hold.booking_date,
+          selectedWeddingEvents: safeJsonParse(hold.selected_wedding_events, []),
+          selectedEventDates: normalizeSelectedEventDateMap(hold.selected_event_dates),
           bookingRules,
           depositPercentage,
           remainingBalancePercentage,
           paymentStatus: null,
-          message: "Another customer completed this slot during payment verification. Please contact support for resolution or refund.",
+          message: conflictMessage,
         });
       }
 
@@ -1020,13 +1430,15 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           hourly_rate, selected_hours, selected_option_label, selected_option_price, number_of_videos, deposit_amount, remaining_balance,
           booking_date, start_time, end_time, duration_minutes, location,
           event_type, event_address, customer_name, customer_phone, customer_email,
+          selected_wedding_events, selected_event_dates,
           additional_notes, payment_status, status, payment_reference
         ) VALUES (
           $1, $2, $3, $4, $5, $6,
           $7, $8, $9, $10, $11, $12, $13,
           $14, $15, $16, $17, $18,
           $19, $20, $21, $22, $23,
-          $24, 'deposit_paid', 'confirmed', $25
+          $24::jsonb, $25::jsonb,
+          $26, 'paid', 'confirmed', $27
         ) RETURNING booking_reference, package_name, booking_date`,
         [
           hold.user_id,
@@ -1052,6 +1464,8 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
           hold.customer_name,
           hold.customer_phone,
           hold.customer_email,
+          JSON.stringify(safeJsonParse(hold.selected_wedding_events, [])),
+          JSON.stringify(normalizeSelectedEventDateMap(hold.selected_event_dates)),
           hold.additional_notes,
           paymentReference,
         ]
@@ -1083,6 +1497,8 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         package_price: hold.package_price,
         deposit_amount: hold.deposit_amount,
         remaining_balance: hold.remaining_balance,
+        selected_wedding_events: safeJsonParse(hold.selected_wedding_events, []),
+        selected_event_dates: normalizeSelectedEventDateMap(hold.selected_event_dates),
       };
 
       await sendBookingConfirmationEmails(confirmedBookingForEmail);
@@ -1092,10 +1508,12 @@ app.get("/bookings/payment/callback", async (req, res, next) => {
         bookingReference: booking.booking_reference,
         packageName: booking.package_name,
         bookingDate: booking.booking_date,
+        selectedWeddingEvents: safeJsonParse(hold.selected_wedding_events, []),
+        selectedEventDates: normalizeSelectedEventDateMap(hold.selected_event_dates),
         bookingRules,
         depositPercentage,
         remainingBalancePercentage,
-        paymentStatus: "Deposit Paid",
+        paymentStatus: "Paid in Full",
         message: "Your booking is confirmed. A confirmation has been sent to your email.",
       });
     } catch (transactionError) {
@@ -1145,6 +1563,8 @@ app.get("/admin/bookings", ensureAuthenticated, ensureAdmin, async (req, res, ne
          end_time,
          duration_minutes,
          location,
+         selected_wedding_events,
+         selected_event_dates,
          payment_status,
          status,
          payment_reference,
@@ -1209,6 +1629,8 @@ app.get("/thank-you", (req, res) => {
     bookingReference: null,
     packageName: null,
     bookingDate: null,
+    selectedWeddingEvents: [],
+    selectedEventDates: {},
     bookingRules,
     depositPercentage,
     remainingBalancePercentage,

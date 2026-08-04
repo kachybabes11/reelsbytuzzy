@@ -74,10 +74,11 @@
 							<th>Package</th>
 							<th>Type</th>
 							<th>Total</th>
-							<th>Deposit</th>
-							<th>Balance</th>
+							<th>Paid</th>
+							<th>Remaining</th>
 							<th>Date</th>
 							<th>Time</th>
+							<th>Selected Events</th>
 							<th>Duration</th>
 							<th>Location</th>
 							<th>Payment</th>
@@ -99,6 +100,19 @@
 								<td>₦<%= Number(row.remaining_balance || 0).toLocaleString() %></td>
 								<td><%= row.booking_date ? new Date(row.booking_date).toLocaleDateString('en-GB') : '' %></td>
 								<td><%= row.start_time ? String(row.start_time).slice(0, 5) : '' %> - <%= row.end_time ? String(row.end_time).slice(0, 5) : '' %></td>
+								<td>
+									<% const selectedEvents = Array.isArray(row.selected_wedding_events) ? row.selected_wedding_events : []; %>
+									<% const selectedEventDates = row.selected_event_dates && typeof row.selected_event_dates === 'object' ? row.selected_event_dates : {}; %>
+									<% if (selectedEvents.length) { %>
+										<ul class="admin-event-list">
+											<% selectedEvents.forEach((eventItem) => { %>
+												<li><%= eventItem.name %> (<%= selectedEventDates[eventItem.slug] ? new Date(selectedEventDates[eventItem.slug]).toLocaleDateString('en-GB') : 'No date' %>)</li>
+											<% }) %>
+										</ul>
+									<% } else { %>
+										<span>-</span>
+									<% } %>
+								</td>
 								<td><%= row.duration_minutes %> mins</td>
 								<td><%= row.location %></td>
 								<td><%= row.payment_status %></td>

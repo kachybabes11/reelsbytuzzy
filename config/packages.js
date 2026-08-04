@@ -5,9 +5,9 @@ const packages = [
     category: "Wedding",
     name: "Yes to Forever",
     description:
-      "A complete cinematic journey capturing your love story from the proposal through three wedding celebrations of your choice.",
+      "A complete cinematic journey capturing your love story from the proposal through two wedding celebrations of your choice.",
     fullDescription:
-      "This package is designed for couples who want a comprehensive visual record of their wedding journey. From the proposal to three wedding celebrations of your choice, whether it's your Introduction, Pre-Wedding Session, Traditional Wedding, Civil Wedding, White Wedding or Nikkah; this package is designed to tell your entire love story as one seamless cinematic experience. Every milestone is captured with intention, preserving the emotions, details, and unforgettable moments that make your journey unique, so you can relive every chapter for years to come.",
+      "Your love story deserves to be told in its entirety. Yes to Forever is our signature all-inclusive wedding package, thoughtfully designed for couples who want every chapter of their journey preserved through timeless storytelling. From the excitement of your proposal to two wedding celebrations of your choice.",
     mediaType: "image",
     mediaSrc: "/assets/beauty-1.jpg",
     features: [
@@ -16,7 +16,7 @@ const packages = [
       "3 highlight films (3-5 mins)",
     ],
     duration: "Full Day",
-    delivery: "3-4 Days",
+    delivery: "Custom delivery",
     price: 1000000,
     popular: false
   },
@@ -37,7 +37,7 @@ const packages = [
       "3 highlight films (3-5 mins)",
     ],
     duration: "Full Day",
-    delivery: "3-4 Days",
+    delivery: "Custom delivery",
     price: 900000,
     popular: false
   },
@@ -57,7 +57,7 @@ const packages = [
       "1 Creator",
     ],
     duration: "3 hours",
-    delivery: "3-4 Days",
+    delivery: "24-48 hours",
     price: 150000,
     popular: true
   },  
@@ -78,7 +78,7 @@ const packages = [
       "Highlights of the introduction ceremony ",
     ],
     duration: "6 hours",
-    delivery: "3-4 Days",
+    delivery: "24-48 hours",
     price: 250000,
     popular: false
   },
@@ -90,7 +90,7 @@ const packages = [
     description:
       "A cinematic package capturing the essence of your pre-wedding moments.",
     fullDescription:
-      "The Pre-wedding Package is designed to document your pre-wedding moments with cinematic precision. From candid shots to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+      "Before the vows, before the celebration, there's your story. Our Pre-Wedding Package transforms your love into a cinematic experience, capturing authentic emotions, effortless romance, and unforgettable moments that reflect who you are as a couple.",
     mediaType: "image",
     mediaSrc: "/assets/beauty-1.jpg",
     features: [
@@ -99,7 +99,7 @@ const packages = [
       "1 transition video",
     ],
     duration: "4 Hours",
-    delivery: "3-5 Days",
+    delivery: "24-48 hours",
     price: 200000,
     popular: false
   },
@@ -121,7 +121,7 @@ const packages = [
       "Couple’s Interview"
     ],
     duration: "4 hours",
-    delivery: "5-7 Days",
+    delivery: "24-48 hours",
     price: 200000,
     popular: false
   },
@@ -133,7 +133,7 @@ const packages = [
     description:
       "A cinematic package capturing the essence of your traditional wedding.",
     fullDescription:
-      "The Traditional Wedding Package is designed to document your traditional wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
+      "Honor your roots with a timeless cinematic experience. Our Traditional Wedding Package is thoughtfully crafted to capture every vibrant detail, heartfelt emotion, and rich cultural moment that makes your day unforgettable.",
     mediaType: "image",
     mediaSrc: "/assets/beauty-1.jpg",
     features: [
@@ -146,7 +146,7 @@ const packages = [
       "Professionally edited highlights of the Traditional wedding ceremony."
     ],
     duration: "8 hours",
-    delivery: "3-4 Days",
+    delivery: "24-48 hours",
     price: 350000,
     popular: false
   },
@@ -180,9 +180,9 @@ const packages = [
       "Premium highlights of the reception ceremony.",
       "Premium highlights of the wedding after party."
     ],
-    duration: "12-15 hours",
-    delivery: "3-4 Days",
-    price: 550000,
+    duration: "Full Day",
+    delivery: "48-72 hours",
+    price: 600000,
     popular: true
   },
     {
@@ -206,7 +206,7 @@ const packages = [
       "Highlights of the White wedding ceremony.",
     ],
     duration: "6 hours",
-    delivery: "3-4 Days",
+    delivery: "24-48 hours",
     price: 300000,
     popular: false
   },
@@ -240,9 +240,9 @@ const packages = [
       "Premium highlights of the reception ceremony.",
       "Premium highlights of the wedding after party."
     ],
-    duration: "12-15 hours",
-    delivery: "3-4 Days",
-    price: 550000,
+    duration: "Full Day",
+    delivery: "48-72 hours",
+    price: 600000,
     popular: true
   },
     {
@@ -266,7 +266,7 @@ const packages = [
       "Highlights of the Nikkah wedding ceremony.",
     ],
     duration: "6 hours",
-    delivery: "3-4 Days",
+    delivery: "24-48 hours",
     price: 300000,
     popular: false
   },
@@ -289,7 +289,7 @@ const packages = [
       "Professionally edited highlights of the reception party."
     ],
     duration: "6 hours",
-    delivery: "3-4 Days",
+    delivery: "48-72 hours",
     price: 300000,
     popular: true
   },
@@ -308,9 +308,8 @@ const packages = [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
       "Interview moments (Bride and Groom)",
       "Highlights of the Civil wedding ceremony.",
-    ],
-    duration: "4 hours",
-    delivery: "3-4 Days",
+    ],    duration: "4 hours",
+    delivery: "24-48 hours",
     price: 200000,
     popular: false
   },
@@ -333,7 +332,7 @@ const packages = [
       "Premium highlights of the wedding after party."
     ],
     duration: "6 hours",
-    delivery: "3-4 Days",
+    delivery: "24-48 hours",
     price: 250000,
     popular: false
   },
@@ -349,7 +348,6 @@ const packages = [
     mediaSrc: "/assets/beauty-2.jpg",
     features: [
       "Choose a 0-6 hour or 6-12 hour coverage tier",
-      "Same secure booking flow and deposit process",
       "Ideal for premium events that need a defined coverage window",
     ],
     duration: "0-12 Hours",

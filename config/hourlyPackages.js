@@ -12,7 +12,7 @@ const hourlyPackages = [
     features: [
       "Select the coverage tier that fits your event",
       "Add extra edited videos as needed",
-      "Secure the date with the same booking flow and deposit process",
+      "Secure the date with the same full-payment booking flow",
     ],
     duration: "0-12 Hours",
     delivery: "Custom delivery timeline",
@@ -25,9 +25,9 @@ const hourlyPackages = [
       durationLabel: "Coverage Tier",
       durationOptions: [
         { label: "0–3 Hours — ₦60,000", value: 3, price: 60000 },
-        { label: "3–6 Hours — ₦100,000", value: 6, price: 100000 },
-        { label: "6–9 Hours — ₦140,000", value: 9, price: 140000 },
-        { label: "9–12 Hours — ₦180,000", value: 12, price: 180000 },
+        { label: "3–6 Hours — ₦100,000", value: 6, price: 110000 },
+        { label: "6–9 Hours — ₦160,000", value: 9, price: 160000 },
+        { label: "9–12 Hours — ₦220,000", value: 12, price: 220000 },
       ],
       videoLabel: "Number of Videos",
       videoPrice: 70000,
@@ -40,6 +40,7 @@ const hourlyPackages = [
         "BTS Shoots",
         "Naming Ceremony / Baby Dedication",
         "Personal Branding (Talking Head Videos)",
+        "Others"
       ],
     },
   },
