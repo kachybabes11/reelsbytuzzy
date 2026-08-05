@@ -188,7 +188,7 @@ img {
 
 .brand-mark img {
   display: block;
-  height: 75px;      /* Try 50–65px */
+  height: 95px;      /* Try 50–65px */
   width: auto;
   max-width: 220px;  /* Prevents it from becoming too wide */
   object-fit: contain;

@@ -415,12 +415,13 @@
 		const isHourlyBooking = config?.mode === 'hourly-booking';
 		const isTieredPackage = config?.mode === 'tiered';
 		const hasDurationOptions = Array.isArray(config?.durationOptions) && config.durationOptions.length > 0;
+		const hasEventTypeOptions = isHourlyBooking && Array.isArray(config?.eventTypes) && config.eventTypes.length > 0;
 
-		eventTypeField.hidden = !isHourlyBooking;
-		eventTypeField.style.display = isHourlyBooking ? '' : 'none';
-		eventTypeSelect.disabled = !isHourlyBooking;
-		eventTypeSelect.required = isHourlyBooking;
-		if (isHourlyBooking) {
+		eventTypeField.hidden = !hasEventTypeOptions;
+		eventTypeField.style.display = hasEventTypeOptions ? '' : 'none';
+		eventTypeSelect.disabled = !hasEventTypeOptions;
+		eventTypeSelect.required = hasEventTypeOptions;
+		if (hasEventTypeOptions) {
 			populateSelect(eventTypeSelect, (config.eventTypes || []).map((label) => ({ label, value: label })), 'Select Event Type');
 		} else {
 			eventTypeSelect.innerHTML = '<option value="Booking">Booking</option>';

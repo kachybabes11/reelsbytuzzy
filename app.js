@@ -39,6 +39,7 @@ import {
   getMaxHourlyBookingHours,
 } from "./services/appSettingsService.js";
 import hourlyPackagesCatalog from "./config/hourlyPackages.js";
+import corporatePackagesCatalog from "./config/corporatePackages.js";
 
 
 dotenv.config();
@@ -801,6 +802,20 @@ app.get("/hourly-packages", async (req, res, next) => {
   }
 });
 
+app.get("/corporate-packages", async (req, res, next) => {
+  try {
+    const pkg = corporatePackagesCatalog[0] ? { ...corporatePackagesCatalog[0] } : null;
+    return res.render("corporate-packages", {
+      pkg,
+      bookingRules,
+      depositPercentage,
+      remainingBalancePercentage,
+    });
+  } catch (error) {
+    return next(error);
+  }
+});
+
 app.get("/user", ensureAuthenticated, async (req, res, next) => {
   try {
     let bookings = [];
@@ -1086,10 +1101,10 @@ app.post("/bookings/start-payment", async (req, res, next) => {
       if (bookingConfig.mode === "hourly-booking") {
         const normalizedEventType = String(eventType || "").trim();
         const validEventTypes = Array.isArray(bookingConfig.eventTypes) ? bookingConfig.eventTypes : [];
-        if (!normalizedEventType || !validEventTypes.includes(normalizedEventType)) {
+        if (validEventTypes.length > 0 && (!normalizedEventType || !validEventTypes.includes(normalizedEventType))) {
           req.session.messages = [{
             type: "error",
-            text: "Please choose a valid event type for Hourly Booking.",
+            text: `Please choose a valid event type for ${selectedPackage?.name || "this booking"}.`,
           }];
           return res.redirect(`/bookings?package=${encodeURIComponent(packageSlug || "")}`);
         }
@@ -1134,7 +1149,7 @@ app.post("/bookings/start-payment", async (req, res, next) => {
     const selectedOptionLabel = bookingSelection?.selectedOptionLabel || null;
     const selectedOptionPrice = bookingSelection?.selectedOptionPrice || null;
     const eventTypeValue = bookingConfig?.mode === "hourly-booking"
-      ? String(eventType || "").trim()
+      ? (String(eventType || "").trim() || "Booking")
       : premiumPackageSelected
         ? "Wedding Collection"
         : "Booking";

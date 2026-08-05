@@ -1,5 +1,6 @@
 import basePackages from "../config/packages.js";
 import hourlyPackagesCatalog from "../config/hourlyPackages.js";
+import corporatePackagesCatalog from "../config/corporatePackages.js";
 
 function parseStandardDurationMinutes(duration) {
   const normalized = String(duration || "").trim().toLowerCase();
@@ -61,8 +62,9 @@ export async function getHourlyPackages() {
 
 export async function getPackages() {
   const hourlyPackages = await getHourlyPackages();
+  const corporatePackages = corporatePackagesCatalog.map(normalizeFixedPackage);
   const seenSlugs = new Set();
-  return [...basePackages.map(normalizeBasePackage), ...hourlyPackages].filter((pkg) => {
+  return [...basePackages.map(normalizeBasePackage), ...hourlyPackages, ...corporatePackages].filter((pkg) => {
     if (seenSlugs.has(pkg.slug)) {
       return false;
     }
@@ -84,6 +86,11 @@ export async function getPackageBySlug(slug) {
   const catalogPackage = hourlyPackagesCatalog.find((item) => item.slug === slug);
   if (catalogPackage) {
     return normalizeFixedPackage(catalogPackage);
+  }
+
+  const corporatePackage = corporatePackagesCatalog.find((item) => item.slug === slug);
+  if (corporatePackage) {
+    return normalizeFixedPackage(corporatePackage);
   }
 
   return null;

@@ -1,0 +1,42 @@
+<%- include('./partials/header.ejs') %>
+<%- include('./partials/messages.ejs') %>
+
+<section class="section-shell hourly-booking-showcase">
+	<article class="hourly-showcase-card">
+		<div class="hourly-simple-intro">
+			<span class="eyebrow">Corporate Events</span>
+			<h1 class="page-title"><%= pkg ? pkg.name : 'Corporate Hourly Booking' %></h1>
+			<p class="page-subtitle">Choose a coverage tier first, then add your preferred number of videos.</p>
+			<p class="hourly-pricing-formula">Total price = Session tier + (Number of videos × ₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %>)</p>
+		</div>
+
+		<section class="hourly-simple-section">
+			<h2>Session Tiers</h2>
+			<ul class="hourly-tier-list">
+				<% if ((pkg?.bookingConfig?.durationOptions || []).length === 0) { %>
+					<li>
+						<span>Tier details will be available shortly.</span>
+						<strong>--</strong>
+					</li>
+				<% } %>
+				<% (pkg?.bookingConfig?.durationOptions || []).forEach((option) => { %>
+					<% const durationLabel = String(option?.label || '').split('—')[0].trim(); %>
+					<li>
+						<span><%= durationLabel || option.label %></span>
+						<strong>₦<%= Number(option.price || 0).toLocaleString() %></strong>
+					</li>
+				<% }) %>
+			</ul>
+		</section>
+
+		<section class="hourly-simple-section">
+			<p class="hourly-video-note">Each edited reel costs ₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %> and is added to your selected session tier.</p>
+		</section>
+
+		<div class="hourly-package-actions">
+			<a href="/bookings?package=<%= pkg ? encodeURIComponent(pkg.slug) : '' %>" class="button button-primary">Proceed to Corporate Booking</a>
+		</div>
+	</article>
+</section>
+
+<%- include('./partials/footer.ejs') %>

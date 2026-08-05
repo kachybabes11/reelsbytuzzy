@@ -12,11 +12,10 @@ const hourlyPackages = [
     features: [
       "Select the coverage tier that fits your event",
       "Add extra edited videos as needed",
-      "Secure the date with the same full-payment booking flow",
     ],
     duration: "0-12 Hours",
     delivery: "Custom delivery timeline",
-    price: 60000,
+    price: 130000,
     popular: true,
     packageType: "hourly",
     isHourly: true,
