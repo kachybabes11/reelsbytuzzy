@@ -44,6 +44,23 @@ import corporatePackagesCatalog from "./config/corporatePackages.js";
 
 dotenv.config();
 
+function requireEnv(name) {
+  const value = String(process.env[name] || "").trim();
+  if (!value) {
+    throw new Error(`Missing required environment variable: ${name}`);
+  }
+  return value;
+}
+
+function requirePositiveIntegerEnv(name) {
+  const rawValue = process.env[name];
+  const parsed = Number(rawValue);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Environment variable ${name} must be a positive integer.`);
+  }
+  return parsed;
+}
+
 const app = express();
 const saltRounds = 15;
 const googleEnabled = Boolean(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET);
@@ -51,15 +68,16 @@ const dbEnabled = Boolean(
   process.env.DATABASE_URL ||
     (process.env.PG_USER && process.env.PG_HOST && process.env.PG_DATABASE && process.env.PG_PASSWORD)
 );
-const sessionSecret = process.env.SESSION_SECRET;
-const paystackSecretKey = process.env.PAYSTACK_SECRET_KEY || "";
-const paystackPublicKey = process.env.PAYSTACK_PUBLIC_KEY || "";
-const appBaseUrl = process.env.APP_BASE_URL || "http://localhost:3000";
-const holdMinutes = Number(process.env.BOOKING_HOLD_MINUTES || 30);
-const bookingBufferMinutes = Number(process.env.BOOKING_BUFFER_MINUTES || 60);
-const adminEmail = process.env.ADMIN_EMAIL || "reelsbytuzzy@gmail.com";
-const resendFromEmail = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
-const passwordResetMinutes = Number(process.env.PASSWORD_RESET_TOKEN_MINUTES || 30);
+const sessionSecret = requireEnv("SESSION_SECRET");
+const paystackSecretKey = String(process.env.PAYSTACK_SECRET_KEY || "").trim();
+const paystackPublicKey = String(process.env.PAYSTACK_PUBLIC_KEY || "").trim();
+const appBaseUrl = requireEnv("APP_BASE_URL");
+const holdMinutes = requirePositiveIntegerEnv("BOOKING_HOLD_MINUTES");
+const bookingBufferMinutes = requirePositiveIntegerEnv("BOOKING_BUFFER_MINUTES");
+const adminEmail = requireEnv("ADMIN_EMAIL");
+const resendFromEmail = requireEnv("RESEND_FROM_EMAIL");
+const passwordResetMinutes = requirePositiveIntegerEnv("PASSWORD_RESET_TOKEN_MINUTES");
+const googleCallbackUrl = String(process.env.GOOGLE_CALLBACK_URL || "").trim();
 const premiumMainPackageSlugs = new Set(["yes-to-forever", "full-wedding-experience"]);
 const premiumEventSlugs = [
   "premium-civil-package",
@@ -717,12 +735,16 @@ passport.use(
 );
 
 if (googleEnabled) {
+  if (!googleCallbackUrl) {
+    throw new Error("GOOGLE_CALLBACK_URL is required when Google OAuth is enabled.");
+  }
+
   passport.use(
     new GoogleStrategy(
       {
         clientID: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        callbackURL: process.env.GOOGLE_CALLBACK_URL || "http://localhost:3000/auth/google",
+        callbackURL: googleCallbackUrl,
         userProfileURL: "https://www.googleapis.com/oauth2/v3/userinfo",
       },
       async (accessToken, refreshToken, profile, done) => {

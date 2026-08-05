@@ -5,6 +5,15 @@ dotenv.config();
 
 const { Pool } = pg;
 
+function parseRequiredPort(name) {
+  const value = process.env[name];
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    throw new Error(`Environment variable ${name} must be a valid port number.`);
+  }
+  return parsed;
+}
+
 const primaryConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
@@ -15,13 +24,13 @@ const primaryConfig = process.env.DATABASE_URL
   : null;
 
 const fallbackConfig =
-  process.env.PG_USER && process.env.PG_HOST && process.env.PG_DATABASE && process.env.PG_PASSWORD
+  process.env.PG_USER && process.env.PG_HOST && process.env.PG_DATABASE && process.env.PG_PASSWORD && process.env.PG_PORT
     ? {
         user: process.env.PG_USER,
         host: process.env.PG_HOST,
         database: process.env.PG_DATABASE,
         password: process.env.PG_PASSWORD,
-        port: Number(process.env.PG_PORT || 5432),
+        port: parseRequiredPort("PG_PORT"),
         ssl: process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : false,
       }
     : null;
