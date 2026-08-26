@@ -37,7 +37,7 @@
 				<div class="booking-grid">
 					<% packages.forEach((pkg) => { %>
 						<article class="booking-package-card <%= selectedPackage?.slug === pkg.slug ? 'selected' : '' %>" data-pkg-card="<%= pkg.slug %>">
-							<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %>" />
+							
 							<div class="booking-package-copy">
 								<p class="booking-package-name"><%= pkg.name %></p>
 								<p class="booking-package-desc"><%= pkg.bookingConfig?.mode === 'hourly-booking' ? 'Choose a duration tier, add videos, and book the same premium flow.' : (pkg.bookingConfig?.mode === 'tiered' ? 'Select the tier that fits your coverage window.' : pkg.description) %></p>

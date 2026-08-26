@@ -3,12 +3,14 @@ const hourlyPackages = [
     id: 1,
     slug: "hourly-booking",
     category: "Hourly Booking",
-    name: "Hourly Booking",
-    description: "Flexible videography coverage with tiered duration pricing and add-on videos.",
+    name: "Event Hourly Booking",
+    description:
+      "Flexible videography coverage with tiered duration pricing and add-on videos.",
     fullDescription:
       "Hourly Booking is our flexible coverage option for events that need premium videography support without committing to a fixed package. Select a duration tier, choose how many videos you want delivered, and continue through the same booking flow used by every other package.",
-    mediaType: "image",
-    mediaSrc: "/assets/beauty-2.jpg",
+    mediaType: "video",
+    mediaSrc:
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1787667775/hourly-birthday-2.mov",
     features: [
       "Select the coverage tier that fits your event",
       "Add extra edited videos as needed",
@@ -39,7 +41,7 @@ const hourlyPackages = [
         "BTS Shoots",
         "Naming Ceremony / Baby Dedication",
         "Personal Branding (Talking Head Videos)",
-        "Others"
+        "Others",
       ],
     },
   },

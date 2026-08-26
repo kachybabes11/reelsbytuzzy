@@ -47,3 +47,16 @@ uploads/
 *.pid
 *.seed
 *.pid.lock
+
+
+# Videos
+public/assets/*.mp4
+public/assets/*.MP4
+
+*.mp4
+*.MP4
+*.mov
+*.MOV
+*.avi
+*.mkv
+*.webm

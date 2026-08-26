@@ -1676,13 +1676,17 @@ app.get("/thank-you", (req, res) => {
   });
 });
 
-app.get("/register", (req,res)=>{
-    res.render("register");
+app.get("/register", (req, res) => {
+  // Registration is handled via Google OAuth for now; form kept in view for future use
+  if (req.isAuthenticated && req.isAuthenticated()) return res.redirect("/user");
+  res.render("register");
 });
 
-app.get("/login", (req, res)=>{
-    res.render("login")
-})
+app.get("/login", (req, res) => {
+  // Login is handled via Google OAuth for now; form kept in view for future use
+  if (req.isAuthenticated && req.isAuthenticated()) return res.redirect("/user");
+  res.render("login");
+});
 
 app.get("/forgot-password", (req, res) => {
   res.render("forgot-password", { formData: { email: "" } });

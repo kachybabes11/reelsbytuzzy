@@ -1,39 +1,19 @@
 <%- include('./partials/header.ejs') %>
 <%- include('./partials/messages.ejs') %>
 
-<section class="auth-layout">
-  <article class="auth-card">
-    <h2 class="page-title">Sign In</h2>
-    <p class="page-subtitle">Access your dashboard and continue where you left off.</p>
-    <form action="/login" method="post" class="auth-form">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" required placeholder="you@example.com" />
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required placeholder="••••••••" />
-        </div>
-        <p class="auth-inline-link"><a href="/forgot-password" class="auth-link">Forgot your password?</a></p>
-        <button type="submit" class="button button-primary auth-button">Sign In</button>
-    </form>
-
-    <% if (googleEnabled) { %>
-      <div class="oauth-section">
-        <div class="divider">
-          <span>Or continue with</span>
-        </div>
-        <a href="/auth/google" class="oauth-button">
-          <img src="/assets/gmail_logo.webp" alt="Google" class="oauth-icon" />
-          <span>Google</span>
-        </a>
-      </div>
-    <% } %>
-
-    <div class="auth-footer">
-      <p>Don't have an account? <a href="/register" class="auth-link">Sign up here</a></p>
+<section class="auth-layout auth-layout-centered">
+  <article class="auth-card auth-card-oauth">
+    <div class="auth-oauth-brand">
+      <h2 class="page-title">Welcome back</h2>
+      <p class="page-subtitle">Sign in to manage your bookings and account.</p>
     </div>
+
+    <a href="/auth/google" class="oauth-button oauth-button-hero">
+      <img src="/assets/gmail_logo.webp" alt="" class="oauth-icon oauth-icon-lg" />
+      <span>Continue with Google</span>
+    </a>
+
+    <!-- <p class="auth-oauth-note">We use Google to keep your account secure. No passwords needed.</p> -->
   </article>
 </section>
 

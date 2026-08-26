@@ -65,9 +65,12 @@
 						<% if (pkg.slug === 'yes-to-forever' || pkg.slug === 'full-wedding-experience') { %>
 							<a href="/bookings?package=<%= encodeURIComponent(pkg.slug) %>" class="package-btn package-btn-secondary">Customize Package</a>
 							<a href="/packages/<%= pkg.slug %>" class="package-btn">View Details</a>
-						<% } else if (pkg.isHourly) { %>
+						<% } else if (pkg.slug === 'hourly-booking') { %>
 							<a href="/packages/<%= pkg.slug %>" class="package-btn package-btn-secondary">View Details</a>
 							<a href="/hourly-packages" class="package-btn">Book This Package</a>
+						<% } else if (pkg.slug === 'corporate-hourly-booking') { %>
+							<a href="/packages/<%= pkg.slug %>" class="package-btn package-btn-secondary">View Details</a>
+							<a href="/corporate-packages" class="package-btn">Book This Package</a>
 						<% } else { %>
 							<a href="/packages/<%= pkg.slug %>" class="package-btn package-btn-secondary">View Details</a>
 							<a href="/bookings?package=<%= encodeURIComponent(pkg.slug) %>" class="package-btn">Book This Package</a>

@@ -4,11 +4,13 @@ const corporatePackages = [
     slug: "corporate-hourly-booking",
     category: "Corporate Events",
     name: "Corporate Hourly Booking",
-    description: "Flexible videography coverage with tiered duration pricing and add-on videos.",
+    description:
+      "Flexible videography coverage with tiered duration pricing and add-on videos.",
     fullDescription:
       "Hourly Booking is our flexible coverage option for corporate events that need premium videography support without committing to a fixed package. Select a duration tier, choose how many videos you want delivered.",
-    mediaType: "image",
-    mediaSrc: "/assets/beauty-2.jpg",
+    mediaType: "video",
+    mediaSrc:
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1787667803/hourly-corporate.mp4",
     features: [
       "Select the coverage tier that fits your corporate event",
       "Add extra edited videos as needed",
@@ -30,7 +32,7 @@ const corporatePackages = [
       ],
       videoLabel: "Number of Videos",
       videoPrice: 70000,
-      videoOptions: [1, 2, 3, 4, 5],    
+      videoOptions: [1, 2, 3, 4, 5],
     },
   },
 ];

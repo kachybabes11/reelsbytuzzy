@@ -13,22 +13,44 @@
 
 	<div class="hero-visuals" aria-hidden="true">
 		<figure class="hero-image hero-image-main">
-			<img src="/assets/beauty-2.jpg" alt="" />
+			<img src="/assets/home_page_image.PNG" alt="" />
 		</figure>
 		<figure class="hero-image hero-image-offset">
-			<img src="/assets/beauty-1.jpg" alt="" />
+			<img src="/assets/beauty-2.jpg" alt="" />
 		</figure>
 	</div>
 </section>
 
-<section class="home-cta-banner section-shell">
+<%
+	const ctaBackgroundVideos = [
+
+		'/assets/home-page-video.mp4',
+		'/assets/home-page-timini.mp4',
+		'/assets/birthday-hourly.mp4',
+		'/assets/home-page-bokku.mp4',
+		'/assets/home-page-award.mp4',
+		'/assets/home-page-bmoni.mp4',
+		
+	].filter(Boolean);
+%>
+
+<section
+	class="home-cta-banner section-shell"
+	data-video-urls="<%= encodeURIComponent(JSON.stringify(ctaBackgroundVideos)) %>"
+>
+	<div class="home-cta-video-stage" aria-hidden="true">
+		<video class="home-cta-video is-active" muted playsinline preload="auto" disablePictureInPicture tabindex="-1"></video>
+		<video class="home-cta-video" muted playsinline preload="auto" disablePictureInPicture tabindex="-1"></video>
+	</div>
 	<div class="home-cta-overlay"></div>
 	<div class="home-cta-content">
 		<!-- <span class="eyebrow">Start Your Story</span> -->
 		<h2>Bring your vision to life on your terms</h2>
 		<p>Book only the hours you need and we'll deliver cinematic visuals.</p>
-		<a href="/hourly-packages" class="button button-primary">Book Other Events</a>
-		<a href="/corporate-packages" class="button button-secondary">Book Corporate Events</a>
+		<div class="home-cta-actions">
+			<a href="/hourly-packages" class="button button-primary">Book Other Events</a>
+			<a href="/corporate-packages" class="button button-secondary">Book Corporate Events</a>
+		</div>
 	</div>
 </section>
 
@@ -91,5 +113,167 @@
 	</article>
 	</div>
 </section>
+
+<script>
+(() => {
+	const banner = document.querySelector('.home-cta-banner[data-video-urls]');
+	if (!banner) return;
+
+	let videoUrls = [];
+	try {
+		videoUrls = JSON.parse(decodeURIComponent(banner.dataset.videoUrls || '[]')).filter(
+			(url) => typeof url === 'string' && url.trim().length > 0
+		);
+	} catch (error) {
+		console.error('Unable to parse the CTA background videos.', error);
+		return;
+	}
+
+	if (!videoUrls.length) return;
+
+	const players = Array.from(banner.querySelectorAll('.home-cta-video'));
+	if (players.length < 2) return;
+
+	banner.classList.add('has-video-background');
+
+	players.forEach((player) => {
+		player.muted = true;
+		player.defaultMuted = true;
+		player.playsInline = true;
+		player.preload = 'auto';
+	});
+
+	const waitForVideoReady = (player) =>
+		new Promise((resolve) => {
+			if (player.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+				resolve();
+				return;
+			}
+
+			const finish = () => {
+				player.removeEventListener('canplay', finish);
+				player.removeEventListener('loadeddata', finish);
+				player.removeEventListener('error', finish);
+				resolve();
+			};
+
+			player.addEventListener('canplay', finish, { once: true });
+			player.addEventListener('loadeddata', finish, { once: true });
+			player.addEventListener('error', finish, { once: true });
+		});
+
+	const setVideoSource = async (player, playlistIndex) => {
+		const normalizedIndex = ((playlistIndex % videoUrls.length) + videoUrls.length) % videoUrls.length;
+		const url = videoUrls[normalizedIndex];
+
+		if (player.dataset.videoUrl !== url) {
+			player.pause();
+			player.removeAttribute('src');
+			player.load();
+			player.src = url;
+			player.dataset.videoUrl = url;
+		}
+
+		player.dataset.videoIndex = String(normalizedIndex);
+		player.load();
+		await waitForVideoReady(player);
+
+		return normalizedIndex;
+	};
+
+	const playVideo = async (player) => {
+		player.currentTime = 0;
+		const playAttempt = player.play();
+		if (playAttempt && typeof playAttempt.then === 'function') {
+			try {
+				await playAttempt;
+			} catch (error) {
+				console.error('Unable to autoplay the CTA background video.', error);
+			}
+		}
+	};
+
+	let currentVideoIndex = 0;
+	let activePlayerIndex = 0;
+	let isSwitching = false;
+
+	const syncActivePlayer = () => {
+		players.forEach((player, index) => {
+			player.classList.toggle('is-active', index === activePlayerIndex);
+		});
+	};
+
+	const preloadUpcomingVideo = async () => {
+		if (videoUrls.length < 2) return;
+
+		const standbyPlayerIndex = 1 - activePlayerIndex;
+		const upcomingVideoIndex = (currentVideoIndex + 1) % videoUrls.length;
+		await setVideoSource(players[standbyPlayerIndex], upcomingVideoIndex);
+	};
+
+	const advancePlaylist = async () => {
+		if (isSwitching) return;
+
+		if (videoUrls.length === 1) {
+			await playVideo(players[activePlayerIndex]);
+			return;
+		}
+
+		isSwitching = true;
+
+		const nextVideoIndex = (currentVideoIndex + 1) % videoUrls.length;
+		const currentPlayer = players[activePlayerIndex];
+		const standbyPlayerIndex = 1 - activePlayerIndex;
+		const standbyPlayer = players[standbyPlayerIndex];
+
+		if (Number(standbyPlayer.dataset.videoIndex) !== nextVideoIndex) {
+			await setVideoSource(standbyPlayer, nextVideoIndex);
+		}
+
+		await playVideo(standbyPlayer);
+
+		// Crossfade: bring standby in while current is still visible, then fade current out
+		standbyPlayer.classList.add('is-active');
+		await new Promise((resolve) => setTimeout(resolve, 620)); // slightly longer than CSS transition
+		currentPlayer.classList.remove('is-active');
+		currentPlayer.pause();
+		currentPlayer.currentTime = 0;
+
+		activePlayerIndex = standbyPlayerIndex;
+		currentVideoIndex = nextVideoIndex;
+		isSwitching = false;
+
+		preloadUpcomingVideo().catch((error) => {
+			console.error('Unable to preload the next CTA background video.', error);
+		});
+	};
+
+	players.forEach((player, index) => {
+		player.addEventListener('ended', () => {
+			if (index !== activePlayerIndex) return;
+			advancePlaylist().catch((error) => {
+				console.error('Unable to advance the CTA background playlist.', error);
+			});
+		});
+
+		player.addEventListener('error', () => {
+			if (index !== activePlayerIndex) return;
+			advancePlaylist().catch((error) => {
+				console.error('Unable to recover the CTA background playlist.', error);
+			});
+		});
+	});
+
+	setVideoSource(players[activePlayerIndex], currentVideoIndex)
+		.then(() => playVideo(players[activePlayerIndex]))
+		.then(() => {
+			syncActivePlayer();
+			return preloadUpcomingVideo();
+		})
+		.catch((error) => {
+			console.error('Unable to start the CTA background videos.', error);
+		});
+})();
+</script>
 
 <%- include('./partials/footer.ejs') %>

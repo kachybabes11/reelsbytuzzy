@@ -1,31 +1,21 @@
 <%- include ("./partials/header.ejs") %>
 <%- include('./partials/messages.ejs') %>
 
-<section class="auth-layout auth-layout-register">
- 
+<section class="auth-layout auth-layout-centered">
 
-  <article class="auth-card auth-card-register">
-    <h2 class="page-title">Register</h2>
-    <p class="page-subtitle">Set up your account in a few steps.</p>
-    <form action="/register" method="post" class="auth-form">
-        <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-        <div class="form-group">
-          <label for="email">Email Address</label>
-          <input type="email" id="email" name="email" required placeholder="you@example.com" />
-        </div>
-        <div class="form-group">
-          <label for="password">Password</label>
-          <input type="password" id="password" name="password" required placeholder="••••••••" />
-        </div>
-        <div class="form-group">
-          <label for="confirm-password">Confirm Password</label>
-          <input type="password" id="confirm-password" name="confirm-password" required placeholder="••••••••" />
-        </div>
-        <button type="submit" class="button button-primary auth-button">Sign Up</button>
-    </form>
-    <div class="auth-footer">
-      <p>Already have an account? <a href="/login" class="auth-link">Sign in here</a></p>
+  <article class="auth-card auth-card-oauth">
+    <div class="auth-oauth-brand">
+      <span class="auth-oauth-logo" aria-hidden="true">🎬</span>
+      <h2 class="page-title">Create your account</h2>
+      <p class="page-subtitle">Get started in seconds — no password needed.</p>
     </div>
+
+    <a href="/auth/google" class="oauth-button oauth-button-hero">
+      <img src="/assets/gmail_logo.webp" alt="" class="oauth-icon oauth-icon-lg" />
+      <span>Continue with Google</span>
+    </a>
+
+    <p class="auth-oauth-note">Already have an account? <a href="/login" class="auth-link">Sign in here</a></p>
   </article>
 </section>
 
