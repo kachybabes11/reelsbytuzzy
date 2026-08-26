@@ -1,55 +1,108 @@
+```ejs
 <%- include('./partials/header.ejs') %>
 <%- include('./partials/messages.ejs') %>
 
 <section class="hero-split section-shell">
 	<div class="hero-brief">
-		<!-- <span class="eyebrow">Editorial Reel Direction</span> -->
-		<h1>Let's create moments that  last a lifetime.</h1>
+		<h1>Let's create moments that last a lifetime.</h1>
+
 		<p>
-		We capture life's most meaningful moments and transform them into cinematic films that tell your story. Check out our previous work.
+			We capture life's most meaningful moments and transform them into cinematic
+			films that tell your story. Check out our previous work.
 		</p>
-		<a href="https://instagram.com/reelsbytuzzy" class="button button-primary">See our work</a>
+
+		<a
+			href="https://instagram.com/reelsbytuzzy"
+			class="button button-primary"
+			target="_blank"
+			rel="noopener noreferrer"
+		>
+			See our work
+		</a>
 	</div>
 
 	<div class="hero-visuals" aria-hidden="true">
 		<figure class="hero-image hero-image-main">
-			<img src="/assets/home_page_image.PNG" alt="" />
+			<img
+				src="/assets/home_page_image.PNG"
+				alt=""
+				loading="eager"
+				fetchpriority="high"
+			/>
 		</figure>
+
 		<figure class="hero-image hero-image-offset">
-			<img src="/assets/beauty-2.jpg" alt="" />
+			<img
+				src="/assets/beauty-2.jpg"
+				alt=""
+				loading="lazy"
+			/>
 		</figure>
 	</div>
 </section>
 
+
 <%
 	const ctaBackgroundVideos = [
-
-		'https://res.cloudinary.com/rvaahkse/video/upload/w_720,q_auto,f_auto/v1787744657/birthday-hourly.mov',
-		'https://res.cloudinary.com/rvaahkse/video/upload/w_720,q_auto,f_auto/v1787665844/white-wedding.mov',
-		'/assets/birthday-hourly.mp4',
+		'https://res.cloudinary.com/rvaahkse/video/upload/w_720/q_auto/f_auto/v1787744657/birthday-hourly',
+		'https://res.cloudinary.com/rvaahkse/video/upload/w_720/q_auto/f_auto/v1787665844/white-wedding',
 		'/assets/home-page-bokku.mp4',
 		'/assets/home-page-award.mp4',
-		'/assets/home-page-bmoni.mp4',
-		
+		'/assets/home-page-bmoni.mp4'
 	].filter(Boolean);
 %>
+
 
 <section
 	class="home-cta-banner section-shell"
 	data-video-urls="<%= encodeURIComponent(JSON.stringify(ctaBackgroundVideos)) %>"
+	aria-label="Featured work"
 >
 	<div class="home-cta-video-stage" aria-hidden="true">
-		<video class="home-cta-video is-active" muted playsinline preload="auto" disablePictureInPicture tabindex="-1"></video>
-		<video class="home-cta-video" muted playsinline preload="auto" disablePictureInPicture tabindex="-1"></video>
+
+		<video
+			class="home-cta-video is-active"
+			muted
+			playsinline
+			preload="metadata"
+			disablePictureInPicture
+			tabindex="-1"
+		></video>
+
+		<video
+			class="home-cta-video"
+			muted
+			playsinline
+			preload="metadata"
+			disablePictureInPicture
+			tabindex="-1"
+		></video>
+
 	</div>
+
 	<div class="home-cta-overlay"></div>
+
 	<div class="home-cta-content">
-		<!-- <span class="eyebrow">Start Your Story</span> -->
 		<h2>Bring your vision to life on your terms</h2>
-		<p>Book only the hours you need and we'll deliver cinematic visuals.</p>
+
+		<p>
+			Book only the hours you need and we'll deliver cinematic visuals.
+		</p>
+
 		<div class="home-cta-actions">
-			<a href="/hourly-packages" class="button button-primary">Book Other Events</a>
-			<a href="/corporate-packages" class="button button-secondary">Book Corporate Events</a>
+			<a
+				href="/hourly-packages"
+				class="button button-primary"
+			>
+				Explore Hourly Packages
+			</a>
+
+			<a
+				href="/corporate-packages"
+				class="button button-secondary"
+			>
+				Book Corporate Events
+			</a>
 		</div>
 	</div>
 </section>
@@ -57,81 +110,211 @@
 
 <section class="home-essentials section-shell">
 	<div class="home-essentials-head">
-		<h2> Our Packages</h2>
-		<a href="/packages" class="view-more-link">View More</a>
+		<h2>Our Packages</h2>
+
+		<a
+			href="/packages"
+			class="view-more-link"
+		>
+			View More
+		</a>
 	</div>
 
 	<div class="home-packages-grid">
-		<% ( essentialPackages || []).forEach((pkg) => { %>
+
+		<% (essentialPackages || []).forEach((pkg) => { %>
+
 			<article class="home-package-card">
+
 				<div class="home-package-media">
+
 					<% if (pkg.mediaType === 'video') { %>
-						<video controls preload="metadata" playsinline>
-							<source src="<%= pkg.mediaSrc %>" type="video/mp4" />
+
+						<video
+							controls
+							preload="none"
+							playsinline
+							poster="<%= pkg.thumbnail || '' %>"
+						>
+							<source
+								src="<%= pkg.mediaSrc %>"
+								type="video/mp4"
+							/>
 						</video>
+
 					<% } else { %>
-						<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" />
+
+						<img
+							src="<%= pkg.mediaSrc %>"
+							alt="<%= pkg.name %> preview"
+							loading="lazy"
+							decoding="async"
+						/>
+
 					<% } %>
+
 				</div>
+
 				<div class="home-package-body">
-					<span class="category"><%= pkg.category %></span>
-					<h3><%= pkg.name %></h3>
-					<p><%= pkg.description %></p>
-					<a href="/packages/<%= pkg.slug %>" class="home-package-link">View Package</a>
+
+					<span class="category">
+						<%= pkg.category %>
+					</span>
+
+					<h3>
+						<%= pkg.name %>
+					</h3>
+
+					<p>
+						<%= pkg.description %>
+					</p>
+
+					<a
+						href="/packages/<%= pkg.slug %>"
+						class="home-package-link"
+					>
+						View Package
+					</a>
+
 				</div>
+
 			</article>
+
 		<% }) %>
+
 	</div>
 </section>
 
+
 <section class="section-shell home-services">
-	<h2 class="home-services-head">Our Services</h2>
+
+	<h2 class="home-services-head">
+		Our Services
+	</h2>
+
 	<div class="services-row">
-	<article class="card service-card">
-		<h3>Weddings</h3>
-		<p>From quiet morning moments to the final dance, we capture your wedding story as it unfolds. From bridal prep, groom moments, bridal party content, behind-the-scenes clips, cinematic highlight films, and social-first reels, every emotion is documented with intention so you can relive your day for years to come.</p>
-	</article>
-	<article class="card service-card">
-		<h3>Brand Campaigns</h3>
-		<p>We create premium visual content that helps brands stand out. Whether you're launching a new product, running a campaign, or building a stronger online presence, we produce scroll-stopping videos designed for digital marketing. We also partner with businesses on ongoing monthly content production through our dedicated creative team.</p>
-	</article>
-	<article class="card service-card">
-		<h3>Lifestyle Shoots</h3>
-		<p>Turn everyday moments into beautiful visual stories. Whether it's a solo shoot, couple's session, travel content, birthday, graduation, or simply capturing your personality, we create authentic, cinematic videos that feel effortless and timeless.</p>
-	</article>
-    <article class="card service-card">
-		<h3>Personal Branding</h3>
-		<p>    Your brand deserves visuals that communicate confidence and credibility. We create content for entrepreneurs, creators, professionals, and public figures that showcases who you are, what you do, and why your audience should connect with you.</p>
-	</article>
-    <article class="card service-card">
-		<h3>Event Coverage</h3>
-		<p>From intimate celebrations to large-scale productions, we provide cinematic coverage for every occasion. We film birthdays, corporate events, conferences, product launches, concerts, fashion shows, church events, award ceremonies, graduations, and more—capturing every key moment without missing the details.</p>
-	</article>
-    <article class="card service-card">
-		<h3>Creative Direction & BTS shooting</h3>
-		<p>Already have footage? We transform raw clips into polished, engaging films through professional editing, color grading, sound design, and pacing. We also provide creative direction, shapes concepts, plan shoots, coordinate productions, and ensure every frame aligns with your vision and goals. We also offer behind-the-scenes coverage for films, commercials, music videos, fashion shoots, and other creative productions, capturing the moments that bring your project to life.</p>
-	</article>
+
+		<article class="card service-card">
+			<h3>Weddings</h3>
+
+			<p>
+				From quiet morning moments to the final dance, we capture your
+				wedding story as it unfolds. From bridal prep, groom moments,
+				bridal party content, behind-the-scenes clips, cinematic
+				highlight films, and social-first reels, every emotion is
+				documented with intention so you can relive your day for years
+				to come.
+			</p>
+		</article>
+
+
+		<article class="card service-card">
+			<h3>Brand Campaigns</h3>
+
+			<p>
+				We create premium visual content that helps brands stand out.
+				Whether you're launching a new product, running a campaign, or
+				building a stronger online presence, we produce scroll-stopping
+				videos designed for digital marketing. We also partner with
+				businesses on ongoing monthly content production through our
+				dedicated creative team.
+			</p>
+		</article>
+
+
+		<article class="card service-card">
+			<h3>Lifestyle Shoots</h3>
+
+			<p>
+				Turn everyday moments into beautiful visual stories. Whether
+				it's a solo shoot, couple's session, travel content, birthday,
+				graduation, or simply capturing your personality, we create
+				authentic, cinematic videos that feel effortless and timeless.
+			</p>
+		</article>
+
+
+		<article class="card service-card">
+			<h3>Personal Branding</h3>
+
+			<p>
+				Your brand deserves visuals that communicate confidence and
+				credibility. We create content for entrepreneurs, creators,
+				professionals, and public figures that showcases who you are,
+				what you do, and why your audience should connect with you.
+			</p>
+		</article>
+
+
+		<article class="card service-card">
+			<h3>Event Coverage</h3>
+
+			<p>
+				From intimate celebrations to large-scale productions, we
+				provide cinematic coverage for every occasion. We film
+				birthdays, corporate events, conferences, product launches,
+				concerts, fashion shows, church events, award ceremonies,
+				graduations, and more—capturing every key moment without
+				missing the details.
+			</p>
+		</article>
+
+
+		<article class="card service-card">
+			<h3>Creative Direction & BTS Shooting</h3>
+
+			<p>
+				Already have footage? We transform raw clips into polished,
+				engaging films through professional editing, color grading,
+				sound design, and pacing. We also provide creative direction,
+				shape concepts, plan shoots, coordinate productions, and ensure
+				every frame aligns with your vision and goals. We also offer
+				behind-the-scenes coverage for films, commercials, music videos,
+				fashion shoots, and other creative productions, capturing the
+				moments that bring your project to life.
+			</p>
+		</article>
+
 	</div>
+
 </section>
+
 
 <script>
 (() => {
-	const banner = document.querySelector('.home-cta-banner[data-video-urls]');
+	const banner = document.querySelector(
+		'.home-cta-banner[data-video-urls]'
+	);
+
 	if (!banner) return;
 
 	let videoUrls = [];
+
 	try {
-		videoUrls = JSON.parse(decodeURIComponent(banner.dataset.videoUrls || '[]')).filter(
-			(url) => typeof url === 'string' && url.trim().length > 0
+		videoUrls = JSON.parse(
+			decodeURIComponent(
+				banner.dataset.videoUrls || '[]'
+			)
+		).filter(
+			(url) =>
+				typeof url === 'string' &&
+				url.trim().length > 0
 		);
 	} catch (error) {
-		console.error('Unable to parse the CTA background videos.', error);
+		console.error(
+			'Unable to parse CTA background videos.',
+			error
+		);
+
 		return;
 	}
 
 	if (!videoUrls.length) return;
 
-	const players = Array.from(banner.querySelectorAll('.home-cta-video'));
+	const players = Array.from(
+		banner.querySelectorAll('.home-cta-video')
+	);
+
 	if (players.length < 2) return;
 
 	banner.classList.add('has-video-background');
@@ -140,140 +323,289 @@
 		player.muted = true;
 		player.defaultMuted = true;
 		player.playsInline = true;
-		player.preload = 'auto';
+
+		/*
+		 * IMPORTANT:
+		 * Do not aggressively preload videos.
+		 */
+		player.preload = 'metadata';
 	});
+
 
 	const waitForVideoReady = (player) =>
 		new Promise((resolve) => {
-			if (player.readyState >= HTMLMediaElement.HAVE_FUTURE_DATA) {
+
+			if (
+				player.readyState >=
+				HTMLMediaElement.HAVE_FUTURE_DATA
+			) {
 				resolve();
 				return;
 			}
 
 			const finish = () => {
-				player.removeEventListener('canplay', finish);
-				player.removeEventListener('loadeddata', finish);
-				player.removeEventListener('error', finish);
+				player.removeEventListener(
+					'canplay',
+					finish
+				);
+
+				player.removeEventListener(
+					'loadeddata',
+					finish
+				);
+
+				player.removeEventListener(
+					'error',
+					finish
+				);
+
 				resolve();
 			};
 
-			player.addEventListener('canplay', finish, { once: true });
-			player.addEventListener('loadeddata', finish, { once: true });
-			player.addEventListener('error', finish, { once: true });
+			player.addEventListener(
+				'canplay',
+				finish,
+				{ once: true }
+			);
+
+			player.addEventListener(
+				'loadeddata',
+				finish,
+				{ once: true }
+			);
+
+			player.addEventListener(
+				'error',
+				finish,
+				{ once: true }
+			);
 		});
 
-	const setVideoSource = async (player, playlistIndex) => {
-		const normalizedIndex = ((playlistIndex % videoUrls.length) + videoUrls.length) % videoUrls.length;
+
+	const setVideoSource = async (
+		player,
+		playlistIndex
+	) => {
+
+		const normalizedIndex =
+			(
+				playlistIndex %
+				videoUrls.length +
+				videoUrls.length
+			) %
+			videoUrls.length;
+
 		const url = videoUrls[normalizedIndex];
 
 		if (player.dataset.videoUrl !== url) {
+
 			player.pause();
+
 			player.removeAttribute('src');
+
 			player.load();
+
 			player.src = url;
+
 			player.dataset.videoUrl = url;
 		}
 
-		player.dataset.videoIndex = String(normalizedIndex);
+		player.dataset.videoIndex =
+			String(normalizedIndex);
+
 		player.load();
+
 		await waitForVideoReady(player);
 
 		return normalizedIndex;
 	};
 
+
 	const playVideo = async (player) => {
+
 		player.currentTime = 0;
-		const playAttempt = player.play();
-		if (playAttempt && typeof playAttempt.then === 'function') {
-			try {
+
+		try {
+
+			const playAttempt = player.play();
+
+			if (
+				playAttempt &&
+				typeof playAttempt.then === 'function'
+			) {
 				await playAttempt;
-			} catch (error) {
-				console.error('Unable to autoplay the CTA background video.', error);
 			}
+
+		} catch (error) {
+
+			console.warn(
+				'Background video autoplay was blocked.',
+				error
+			);
 		}
 	};
 
+
 	let currentVideoIndex = 0;
+
 	let activePlayerIndex = 0;
+
 	let isSwitching = false;
 
+
 	const syncActivePlayer = () => {
+
 		players.forEach((player, index) => {
-			player.classList.toggle('is-active', index === activePlayerIndex);
+
+			player.classList.toggle(
+				'is-active',
+				index === activePlayerIndex
+			);
+
 		});
 	};
 
-	const preloadUpcomingVideo = async () => {
-		if (videoUrls.length < 2) return;
-
-		const standbyPlayerIndex = 1 - activePlayerIndex;
-		const upcomingVideoIndex = (currentVideoIndex + 1) % videoUrls.length;
-		await setVideoSource(players[standbyPlayerIndex], upcomingVideoIndex);
-	};
 
 	const advancePlaylist = async () => {
-		if (isSwitching) return;
 
-		if (videoUrls.length === 1) {
-			await playVideo(players[activePlayerIndex]);
-			return;
-		}
+		if (isSwitching) return;
 
 		isSwitching = true;
 
-		const nextVideoIndex = (currentVideoIndex + 1) % videoUrls.length;
-		const currentPlayer = players[activePlayerIndex];
-		const standbyPlayerIndex = 1 - activePlayerIndex;
-		const standbyPlayer = players[standbyPlayerIndex];
+		const nextVideoIndex =
+			(currentVideoIndex + 1) %
+			videoUrls.length;
 
-		if (Number(standbyPlayer.dataset.videoIndex) !== nextVideoIndex) {
-			await setVideoSource(standbyPlayer, nextVideoIndex);
+		const currentPlayer =
+			players[activePlayerIndex];
+
+		const standbyPlayerIndex =
+			1 - activePlayerIndex;
+
+		const standbyPlayer =
+			players[standbyPlayerIndex];
+
+
+		try {
+
+			/*
+			 * IMPORTANT:
+			 * Only load the next video when
+			 * the current video has finished.
+			 *
+			 * This is much friendlier to mobile
+			 * connections than preloading it.
+			 */
+
+			await setVideoSource(
+				standbyPlayer,
+				nextVideoIndex
+			);
+
+			await playVideo(
+				standbyPlayer
+			);
+
+			standbyPlayer.classList.add(
+				'is-active'
+			);
+
+			await new Promise(
+				(resolve) =>
+					setTimeout(resolve, 620)
+			);
+
+			currentPlayer.classList.remove(
+				'is-active'
+			);
+
+			currentPlayer.pause();
+
+			currentPlayer.currentTime = 0;
+
+			activePlayerIndex =
+				standbyPlayerIndex;
+
+			currentVideoIndex =
+				nextVideoIndex;
+
+		} catch (error) {
+
+			console.error(
+				'Unable to advance CTA video.',
+				error
+			);
+
+		} finally {
+
+			isSwitching = false;
+
 		}
-
-		await playVideo(standbyPlayer);
-
-		// Crossfade: bring standby in while current is still visible, then fade current out
-		standbyPlayer.classList.add('is-active');
-		await new Promise((resolve) => setTimeout(resolve, 620)); // slightly longer than CSS transition
-		currentPlayer.classList.remove('is-active');
-		currentPlayer.pause();
-		currentPlayer.currentTime = 0;
-
-		activePlayerIndex = standbyPlayerIndex;
-		currentVideoIndex = nextVideoIndex;
-		isSwitching = false;
-
-		preloadUpcomingVideo().catch((error) => {
-			console.error('Unable to preload the next CTA background video.', error);
-		});
 	};
 
-	players.forEach((player, index) => {
-		player.addEventListener('ended', () => {
-			if (index !== activePlayerIndex) return;
-			advancePlaylist().catch((error) => {
-				console.error('Unable to advance the CTA background playlist.', error);
-			});
-		});
 
-		player.addEventListener('error', () => {
-			if (index !== activePlayerIndex) return;
-			advancePlaylist().catch((error) => {
-				console.error('Unable to recover the CTA background playlist.', error);
-			});
-		});
+	players.forEach((player, index) => {
+
+		player.addEventListener(
+			'ended',
+			() => {
+
+				if (
+					index !== activePlayerIndex
+				) {
+					return;
+				}
+
+				advancePlaylist();
+			}
+		);
+
+		player.addEventListener(
+			'error',
+			() => {
+
+				if (
+					index !== activePlayerIndex
+				) {
+					return;
+				}
+
+				advancePlaylist();
+			}
+		);
 	});
 
-	setVideoSource(players[activePlayerIndex], currentVideoIndex)
-		.then(() => playVideo(players[activePlayerIndex]))
+
+	/*
+	 * Only start the first video.
+	 * The second video will NOT be downloaded
+	 * until it is actually needed.
+	 */
+
+	setVideoSource(
+		players[activePlayerIndex],
+		currentVideoIndex
+	)
+		.then(() =>
+			playVideo(
+				players[activePlayerIndex]
+			)
+		)
 		.then(() => {
 			syncActivePlayer();
-			return preloadUpcomingVideo();
 		})
 		.catch((error) => {
-			console.error('Unable to start the CTA background videos.', error);
+
+			console.error(
+				'Unable to start CTA background video.',
+				error
+			);
+
 		});
+
 })();
 </script>
 
+
 <%- include('./partials/footer.ejs') %>
+```
