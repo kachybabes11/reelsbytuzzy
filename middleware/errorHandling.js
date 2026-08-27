@@ -1,5 +1,5 @@
 export function notFoundHandler(req, res) {
-  const isApiRequest = req.originalUrl.startsWith("/api") || req.accepts("json");
+  const isApiRequest = req.path.startsWith("/api");
 
   if (isApiRequest) {
     return res.status(404).json({
@@ -8,14 +8,19 @@ export function notFoundHandler(req, res) {
     });
   }
 
-  return res.status(404).render("404", {
-    flashMessages: [{ type: "error", text: "Page not found." }],
+  return res.status(404).render("errors/404", {
+    title: "Page not found",
+    message: "The page you requested could not be found.",
   });
 }
 
 export function appErrorHandler(err, req, res, next) {
+  if (res.headersSent) {
+    return next(err);
+  }
+
   if (err?.code === "EBADCSRFTOKEN") {
-    const isApiRequest = req.originalUrl.startsWith("/api") || req.accepts("json");
+    const isApiRequest = req.path.startsWith("/api");
 
     if (isApiRequest) {
       return res.status(403).json({
@@ -24,15 +29,15 @@ export function appErrorHandler(err, req, res, next) {
       });
     }
 
-    return res.status(403).render("403", {
-      flashMessages: [{ type: "error", text: "Session expired. Please try again." }],
-      googleEnabled: res.locals.googleEnabled,
+    return res.status(403).render("errors/403", {
+      title: "Session expired",
+      message: "Your session expired. Please try again.",
     });
   }
 
   console.error("[AppError]", err);
 
-  const isApiRequest = req.originalUrl.startsWith("/api") || req.accepts("json");
+  const isApiRequest = req.path.startsWith("/api");
   if (isApiRequest) {
     return res.status(err.statusCode || 500).json({
       success: false,
@@ -40,7 +45,8 @@ export function appErrorHandler(err, req, res, next) {
     });
   }
 
-  return res.status(500).render("500", {
-    flashMessages: [{ type: "error", text: "Something went wrong. Please try again." }],
+  return res.status(500).render("errors/500", {
+    title: "Something went wrong",
+    message: "Something went wrong. Please try again.",
   });
 }

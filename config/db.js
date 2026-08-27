@@ -18,15 +18,6 @@ function parseRequiredPort(name) {
   return parsed;
 }
 
-const primaryConfig = process.env.DATABASE_URL
-  ? {
-      connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
-    }
-  : null;
-
 const fallbackConfig =
   process.env.PG_USER &&
   process.env.PG_HOST &&
@@ -43,6 +34,18 @@ const fallbackConfig =
           process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : false,
       }
     : null;
+
+const usePrimaryDatabase =
+  process.env.NODE_ENV === "production" || !fallbackConfig;
+
+const primaryConfig = usePrimaryDatabase && process.env.DATABASE_URL
+  ? {
+      connectionString: process.env.DATABASE_URL,
+      ssl: {
+        rejectUnauthorized: false,
+      },
+    }
+  : null;
 
 const primaryPool = primaryConfig ? new Pool(primaryConfig) : null;
 const fallbackPool = fallbackConfig ? new Pool(fallbackConfig) : null;
@@ -104,6 +107,12 @@ async function end() {
 const db = {
   query,
   connect,
+  getPool() {
+    if (!activePool) {
+      throw new Error("No database connection is configured.");
+    }
+    return activePool;
+  },
   end,
 
   get activeName() {

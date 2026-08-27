@@ -100,8 +100,11 @@ export async function createPackage(data) {
         price,
         popular,
         package_type,
+        is_hourly,
         booking_config,
-        is_active
+        is_active,
+        duration_minutes,
+        hourly_rate
       )
       VALUES (
         $1,
@@ -118,8 +121,11 @@ export async function createPackage(data) {
         $12,
         $13,
         $14,
-        $15::jsonb,
-        $16
+        $15,
+        $16::jsonb,
+        $17,
+        $18,
+        $19
       )
       RETURNING *
     `,
@@ -138,8 +144,11 @@ export async function createPackage(data) {
       data.price ?? null,
       data.popular ?? false,
       data.packageType || "standard",
+      data.isHourly ?? data.packageType === "hourly",
       JSON.stringify(data.bookingConfig || {}),
       data.isActive ?? true,
+      data.durationMinutes ?? null,
+      data.hourlyRate ?? null,
     ],
   );
 
@@ -167,8 +176,11 @@ export async function updatePackage(id, data) {
         package_type = COALESCE($14, package_type),
         booking_config = COALESCE($15::jsonb, booking_config),
         is_active = COALESCE($16, is_active),
+        is_hourly = COALESCE($17, is_hourly),
+        duration_minutes = COALESCE($18, duration_minutes),
+        hourly_rate = COALESCE($19, hourly_rate),
         updated_at = now()
-      WHERE id = $17
+      WHERE id = $20
       RETURNING *
     `,
     [
@@ -192,6 +204,9 @@ export async function updatePackage(id, data) {
         ? JSON.stringify(data.bookingConfig)
         : null,
       data.isActive ?? null,
+      data.isHourly ?? null,
+      data.durationMinutes ?? null,
+      data.hourlyRate ?? null,
       id,
     ],
   );

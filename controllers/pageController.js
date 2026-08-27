@@ -19,7 +19,7 @@ export const getHomePage = async (req, res) => {
   } catch (error) {
     console.error("Error loading home page:", error);
 
-    res.status(500).render("error", {
+    res.status(500).render("errors/error", {
       message: "Unable to load the home page.",
     });
   }
@@ -38,7 +38,7 @@ export const getPackagesPage = async (req, res) => {
   } catch (error) {
     console.error("Error loading packages page:", error);
 
-    res.status(500).render("error", {
+    res.status(500).render("errors/error", {
       message: "Unable to load the packages page.",
     });
   }
@@ -49,7 +49,7 @@ export const getPrivacyPolicyPage = (req, res) => {
         res.render("privacy-policy");
     } catch (error) {
         console.error("Error loading privacy policy page:", error);
-        res.status(500).render("error", {
+        res.status(500).render("errors/error", {
             message: "Unable to load the privacy policy page.",
         });
     }
@@ -60,7 +60,7 @@ export const getContactPage = (req, res) => {
         res.render("contact");
     } catch (error) {
         console.error("Error loading contact page:", error);
-        res.status(500).render("error", {
+        res.status(500).render("errors/error", {
             message: "Unable to load the contact page.",
         });
     }
@@ -76,7 +76,7 @@ export const getProfilePage = (req, res) => {
     }
   } catch (error) {
     console.error("Error loading profile page:", error);
-    res.status(500).render("error", {
+    res.status(500).render("errors/error", {
       message: "Unable to load the profile page.",
         });
     }
@@ -101,7 +101,7 @@ export async function getHourlyPackagePage(req, res) {
     });
   } catch (error) {
     console.error("Error loading hourly packages page:", error);
-    res.status(500).render("error");
+    res.status(500).render("errors/error");
   }
 }
 
@@ -124,7 +124,7 @@ export async function getCorporatePackagePage(req, res) {
     });
   } catch (error) {
     console.error("Error loading corporate packages page:", error);
-    res.status(500).render("error");
+    res.status(500).render("errors/error");
   }
 }
 
@@ -169,7 +169,7 @@ export async function getPackageDetailPage(req, res, next) {
 
 export async function getAdminPage(req, res) {
   try {
-    const [statsResult, holdsResult, bookingsResult] = await Promise.all([
+    const [statsResult, holdsResult, bookingsResult, packagesResult] = await Promise.all([
       db.query(`
         SELECT
           COUNT(*) FILTER (WHERE status = 'confirmed')::INTEGER AS total_confirmed,
@@ -197,18 +197,38 @@ export async function getAdminPage(req, res) {
         WHERE status = 'confirmed' OR payment_status = 'paid'
         ORDER BY created_at DESC
       `),
+      findAllPackages({ activeOnly: false }),
     ]);
 
     return res.render("admin/admin-bookings", {
       stats: statsResult.rows[0] || {},
       activeHolds: holdsResult.rows,
       adminRows: bookingsResult.rows,
+      adminPackages: packagesResult.map(serializePackage),
       maxHourlyBookingHours: Number(process.env.MAX_HOURLY_BOOKING_HOURS || 12),
       bookingBufferMinutes: Number(process.env.BOOKING_BUFFER_MINUTES || 60),
     });
   } catch (error) {
     console.error("Error loading admin page:", error);
     res.status(500).render("errors/500");
+  }
+}
+
+export async function getAdminBookingPage(req, res, next) {
+  try {
+    const result = await db.query(
+      "SELECT * FROM bookings WHERE id = $1 LIMIT 1",
+      [req.params.id],
+    );
+    if (!result.rows[0]) {
+      return res.status(404).render("errors/404", {
+        title: "Booking not found",
+        message: "The requested booking could not be found.",
+      });
+    }
+    return res.render("admin/admin-booking-detail", { booking: result.rows[0] });
+  } catch (error) {
+    return next(error);
   }
 }
 

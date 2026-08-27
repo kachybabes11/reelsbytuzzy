@@ -1,0 +1,8 @@
+<%- include('../partials/header.ejs') %>
+<section class="section-shell error-page">
+  <span class="eyebrow">404</span>
+  <h1 class="page-title"><%= title || 'Page not found' %></h1>
+  <p class="page-subtitle"><%= message || 'The page you requested could not be found.' %></p>
+  <a class="button button-primary" href="/">Return home</a>
+</section>
+<%- include('../partials/footer.ejs') %>

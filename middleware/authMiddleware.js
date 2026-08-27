@@ -22,8 +22,15 @@ export function ensureAdmin(req, res, next) {
     return next();
   }
 
-  return res.status(403).json({
-    success: false,
-    message: "Admin access is required.",
+  if (req.path.startsWith("/api") || req.accepts("html") !== "html") {
+    return res.status(403).json({
+      success: false,
+      message: "Admin access is required.",
+    });
+  }
+
+  return res.status(403).render("errors/403", {
+    title: "Access denied",
+    message: "You do not have permission to view this page.",
   });
 }

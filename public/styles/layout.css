@@ -3490,6 +3490,180 @@ img {
     width: calc(100% - 1rem);
   }
 
+  .admin-section-head,
+  .admin-package-card-head,
+  .admin-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .admin-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin: 0.8rem 0;
+  }
+
+  .admin-form-grid label {
+    display: grid;
+    gap: 0.3rem;
+    color: #574b3e;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+
+  .admin-form-grid input,
+  .admin-form-grid select,
+  .admin-form-grid textarea {
+    width: 100%;
+    border: 1px solid #d7c3aa;
+    border-radius: 0.65rem;
+    padding: 0.65rem 0.7rem;
+    background: #fffdf9;
+    color: var(--ink);
+    font: inherit;
+  }
+
+  .admin-form-wide {
+    grid-column: 1 / -1;
+  }
+
+  .admin-package-form {
+    border: 1px solid #dfccb6;
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+    background: rgba(255, 253, 249, 0.72);
+  }
+
+  .admin-package-list {
+    display: grid;
+    gap: 0.7rem;
+    margin-top: 0.8rem;
+  }
+
+  .admin-package-state,
+  .admin-form-status {
+    color: #7c6752;
+    font-size: 0.8rem;
+  }
+
+  .admin-package-state.is-active,
+  .admin-form-status.is-success {
+    color: #24573a;
+  }
+
+  .admin-form-status.is-error {
+    color: #892b2b;
+  }
+
+  .button-danger {
+    background: #8c3030;
+    color: #fff;
+  }
+
+  .admin-checkbox {
+    display: flex !important;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.45rem !important;
+  }
+
+  .admin-checkbox input {
+    width: auto;
+  }
+
+  .admin-booking-cards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .admin-booking-card {
+    display: grid;
+    gap: 0.3rem;
+    border: 1px solid #dfccb6;
+    border-radius: 0.8rem;
+    padding: 0.8rem;
+    background: #fffdf9;
+    text-decoration: none;
+  }
+
+  .admin-booking-card:hover,
+  .admin-booking-card:focus-visible {
+    border-color: #a98966;
+    box-shadow: 0 8px 20px rgba(87, 62, 34, 0.1);
+  }
+
+  .admin-booking-card span {
+    color: #6b6052;
+    font-size: 0.85rem;
+  }
+
+  .admin-detail-shell,
+  .error-page {
+    display: grid;
+    gap: 0.8rem;
+  }
+
+  .admin-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.7rem;
+  }
+
+  .admin-detail-grid > div {
+    padding: 0.7rem;
+    border: 1px solid #dfccb6;
+    border-radius: 0.7rem;
+    overflow-wrap: anywhere;
+  }
+
+  .admin-detail-grid dt {
+    color: #6b6052;
+    font-size: 0.78rem;
+    text-transform: capitalize;
+  }
+
+  .admin-detail-grid dd {
+    margin: 0.25rem 0 0;
+  }
+
+  @media (max-width: 640px) {
+    .brand-mark img {
+      height: 62px;
+      max-width: 150px;
+    }
+
+    .admin-dashboard-head,
+    .admin-section-head,
+    .admin-form-actions {
+      align-items: stretch;
+      flex-direction: column;
+    }
+
+    .admin-dashboard-head .button,
+    .admin-form-actions .button {
+      width: 100%;
+    }
+
+    .admin-form-grid,
+    .admin-booking-cards,
+    .admin-detail-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .admin-booking-table-wrap {
+      display: none;
+    }
+
+    .admin-form-wide {
+      grid-column: auto;
+    }
+  }
+
   .main-nav {
     width: calc(100% - 1rem);
   }

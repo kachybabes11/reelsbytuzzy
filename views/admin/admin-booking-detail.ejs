@@ -1,0 +1,14 @@
+<%- include('../partials/header.ejs') %>
+<section class="section-shell admin-detail-shell">
+  <a href="/admin">← Back to dashboard</a>
+  <span class="eyebrow">Booking details</span>
+  <h1 class="page-title"><%= booking.booking_reference %></h1>
+  <div class="admin-detail-grid">
+    <% Object.entries(booking).forEach(([key, value]) => { %>
+      <% if (!['id', 'pricing_snapshot'].includes(key) && value !== null && value !== '') { %>
+        <div><dt><%= key.replaceAll('_', ' ') %></dt><dd><%= typeof value === 'object' ? JSON.stringify(value) : value %></dd></div>
+      <% } %>
+    <% }) %>
+  </div>
+</section>
+<%- include('../partials/footer.ejs') %>

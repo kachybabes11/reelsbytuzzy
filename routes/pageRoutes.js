@@ -12,6 +12,7 @@ import {
     getPrivacyPolicyPage,
     getContactPage,
     getAdminPage,
+    getAdminBookingPage,
     getErrorPage,
 } from "../controllers/pageController.js";
 
@@ -19,6 +20,7 @@ const router = express.Router();
 
 router.get("/", getHomePage);
 router.get("/admin", ensureAuthenticated, ensureAdmin, getAdminPage);
+router.get("/admin/bookings/:id", ensureAuthenticated, ensureAdmin, getAdminBookingPage);
 router.get("/error", getErrorPage);
 router.get("/hourly-packages", getHourlyPackagePage);
 router.get("/corporate-packages", getCorporatePackagePage);

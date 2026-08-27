@@ -8,6 +8,7 @@
 			<h1 class="page-title">Bookings Dashboard</h1>
 			<p class="page-subtitle">Monitor confirmed sessions, active reservations, and upcoming production schedule in one place.</p>
 		</div>
+		<a class="button button-primary" href="#package-management">Manage packages</a>
 	</div>
 
 	<div class="admin-kpi-grid">
@@ -60,9 +61,76 @@
 		<% } %>
 	</section>
 
+	<section class="admin-table-panel" id="package-management">
+		<div class="admin-section-head">
+			<div>
+				<h2>Package Management</h2>
+				<p>Create, edit, activate, or remove packages without leaving the dashboard.</p>
+			</div>
+		</div>
+		<form class="admin-package-form admin-create-package-form" data-package-form data-mode="create">
+			<h3>Create package</h3>
+			<div class="admin-form-grid">
+				<label>Name <input name="name" required></label>
+				<label>Slug <input name="slug" required pattern="[a-z0-9-]+"></label>
+				<label>Category <input name="category"></label>
+				<label>Price (NGN) <input name="price" type="number" min="0"></label>
+				<label>Duration (minutes) <input name="durationMinutes" type="number" min="0"></label>
+				<label>Package type
+					<select name="packageType"><option value="standard">Standard</option><option value="hourly">Hourly</option></select>
+				</label>
+				<label class="admin-form-wide">Description <textarea name="description" rows="2"></textarea></label>
+				<label class="admin-form-wide">Booking configuration (JSON) <textarea name="bookingConfig" rows="3">{}</textarea></label>
+			</div>
+			<button class="button button-primary" type="submit">Create package</button>
+			<p class="admin-form-status" data-status></p>
+		</form>
+
+		<div class="admin-package-list">
+			<% adminPackages.forEach((pkg) => { %>
+				<form class="admin-package-form admin-package-card" data-package-form data-mode="update" data-id="<%= pkg.id %>">
+					<div class="admin-package-card-head">
+						<h3><%= pkg.name %></h3>
+						<span class="admin-package-state <%= pkg.isActive ? 'is-active' : '' %>"><%= pkg.isActive ? 'Active' : 'Inactive' %></span>
+					</div>
+					<div class="admin-form-grid">
+						<label>Name <input name="name" value="<%= pkg.name || '' %>" required></label>
+						<label>Slug <input name="slug" value="<%= pkg.slug || '' %>" required pattern="[a-z0-9-]+"></label>
+						<label>Category <input name="category" value="<%= pkg.category || '' %>"></label>
+						<label>Price (NGN) <input name="price" type="number" min="0" value="<%= pkg.price ?? '' %>"></label>
+						<label>Duration (minutes) <input name="durationMinutes" type="number" min="0" value="<%= pkg.durationMinutes ?? '' %>"></label>
+						<label>Package type
+							<select name="packageType">
+								<option value="standard" <%= pkg.packageType === 'standard' ? 'selected' : '' %>>Standard</option>
+								<option value="hourly" <%= pkg.packageType === 'hourly' ? 'selected' : '' %>>Hourly</option>
+							</select>
+						</label>
+						<label class="admin-form-wide">Description <textarea name="description" rows="2"><%= pkg.description || '' %></textarea></label>
+						<label class="admin-form-wide">Booking configuration (JSON) <textarea name="bookingConfig" rows="3"><%= JSON.stringify(pkg.bookingConfig || {}, null, 2) %></textarea></label>
+						<label class="admin-checkbox"><input name="isActive" type="checkbox" <%= pkg.isActive ? 'checked' : '' %>> Active</label>
+					</div>
+					<div class="admin-form-actions">
+						<button class="button button-primary" type="submit">Save changes</button>
+						<button class="button button-danger" type="button" data-delete-package>Delete package</button>
+						<p class="admin-form-status" data-status></p>
+					</div>
+				</form>
+			<% }) %>
+		</div>
+	</section>
+
 	<section class="admin-table-panel">
 		<h2>All Confirmed/Paid Booking Records</h2>
 		<% if (adminRows && adminRows.length) { %>
+			<div class="admin-booking-cards">
+				<% adminRows.forEach((row) => { %>
+					<a class="admin-booking-card" href="/admin/bookings/<%= row.id %>">
+						<strong><%= row.booking_reference %></strong>
+						<span><%= row.customer_name %> · <%= row.package_name %></span>
+						<span><%= row.booking_date ? new Date(row.booking_date).toLocaleDateString('en-GB') : 'No date' %> · <%= row.payment_status || 'Payment pending' %></span>
+					</a>
+				<% }) %>
+			</div>
 			<div class="admin-booking-table-wrap">
 				<table class="admin-booking-table">
 					<thead>
@@ -128,5 +196,60 @@
 		<% } %>
 	</section>
 </section>
+
+<script>
+(() => {
+	const token = <%- JSON.stringify(csrfToken || '') %>;
+	const payload = (form) => {
+		const data = Object.fromEntries(new FormData(form).entries());
+		data.isActive = form.querySelector('[name="isActive"]')?.checked ?? true;
+		data.bookingConfig = data.bookingConfig || "{}";
+		data.features = "[]";
+		data.extraFeatures = "[]";
+		return data;
+	};
+	document.querySelectorAll('[data-package-form]').forEach((form) => {
+		form.addEventListener('submit', async (event) => {
+			event.preventDefault();
+			const status = form.querySelector('[data-status]');
+			try {
+				const id = form.dataset.id;
+				const response = await fetch(id ? `/api/packages/${id}` : '/api/packages', {
+					method: id ? 'PATCH' : 'POST',
+					headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': token },
+					body: JSON.stringify(payload(form)),
+				});
+				const result = await response.json();
+				if (!response.ok) throw new Error(result.message || 'Unable to save package.');
+				status.textContent = result.message;
+				status.className = 'admin-form-status is-success';
+				if (!id) window.location.reload();
+			} catch (error) {
+				status.textContent = error.message;
+				status.className = 'admin-form-status is-error';
+			}
+		});
+	});
+	document.querySelectorAll('[data-delete-package]').forEach((button) => {
+		button.addEventListener('click', async () => {
+			const form = button.closest('[data-package-form]');
+			if (!window.confirm('Delete this package?')) return;
+			const status = form.querySelector('[data-status]');
+			try {
+				const response = await fetch(`/api/packages/${form.dataset.id}`, {
+					method: 'DELETE',
+					headers: { 'X-CSRF-Token': token },
+				});
+				const result = await response.json();
+				if (!response.ok) throw new Error(result.message || 'Unable to delete package.');
+				form.remove();
+			} catch (error) {
+				status.textContent = error.message;
+				status.className = 'admin-form-status is-error';
+			}
+		});
+	});
+})();
+</script>
 
 <%- include('../partials/footer.ejs') %>

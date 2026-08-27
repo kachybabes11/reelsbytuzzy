@@ -1,8 +1,8 @@
 <%- include('../partials/header.ejs') %>
 <section class="section-shell error-page">
-  <span class="eyebrow">403</span>
-  <h1 class="page-title"><%= title || 'Access denied' %></h1>
-  <p class="page-subtitle"><%= message || 'You do not have permission to view this page.' %></p>
+  <span class="eyebrow">Error</span>
+  <h1 class="page-title"><%= title || 'Something went wrong' %></h1>
+  <p class="page-subtitle"><%= message || 'Please try again.' %></p>
   <a class="button button-primary" href="/">Return home</a>
 </section>
 <%- include('../partials/footer.ejs') %>

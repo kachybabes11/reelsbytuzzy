@@ -8,6 +8,42 @@ import {
 } from "../models/packageModel.js";
 import { serializePackage } from "../services/packageService.js";
 
+function parseJsonField(value, fallback) {
+  if (value === undefined || value === null || value === "") return fallback;
+  if (typeof value !== "string") return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    const error = new Error("Invalid JSON in package configuration.");
+    error.statusCode = 400;
+    throw error;
+  }
+}
+
+function normalizePackageInput(body = {}) {
+  const normalized = { ...body };
+  if (body.features !== undefined) {
+    normalized.features = parseJsonField(body.features, []);
+  }
+  if (body.extraFeatures !== undefined) {
+    normalized.extraFeatures = parseJsonField(body.extraFeatures, []);
+  }
+  if (body.bookingConfig !== undefined) {
+    normalized.bookingConfig = parseJsonField(body.bookingConfig, {});
+  }
+  if (body.price !== undefined) normalized.price = body.price === "" ? null : Number(body.price);
+  if (body.durationMinutes !== undefined) {
+    normalized.durationMinutes = body.durationMinutes === "" ? null : Number(body.durationMinutes);
+  }
+  if (body.hourlyRate !== undefined) {
+    normalized.hourlyRate = body.hourlyRate === "" ? null : Number(body.hourlyRate);
+  }
+  if (body.popular !== undefined) normalized.popular = body.popular === true || body.popular === "true";
+  if (body.isActive !== undefined) normalized.isActive = body.isActive !== false && body.isActive !== "false";
+  if (body.isHourly !== undefined) normalized.isHourly = body.isHourly === true || body.isHourly === "true";
+  return normalized;
+}
+
 export async function getPackagesController(req, res) {
   try {
     const packages = await findAllPackages({
@@ -81,7 +117,7 @@ export async function getPackageBySlugController(req, res) {
 
 export async function createPackageController(req, res) {
   try {
-    const pkg = await createPackage(req.body);
+    const pkg = await createPackage(normalizePackageInput(req.body));
 
     res.status(201).json({
       success: true,
@@ -100,7 +136,7 @@ export async function createPackageController(req, res) {
 
 export async function updatePackageController(req, res) {
   try {
-    const pkg = await updatePackage(req.params.id, req.body);
+    const pkg = await updatePackage(req.params.id, normalizePackageInput(req.body));
 
     if (!pkg) {
       return res.status(404).json({
