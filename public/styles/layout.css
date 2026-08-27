@@ -1752,6 +1752,7 @@ img {
 }
 
 .package-media {
+  height: 280px;
   min-height: 280px;
   border: 1px solid #cfb396;
   border-radius: 0.82rem;
@@ -1763,10 +1764,11 @@ img {
 
 .package-media img,
 .package-media video {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
   width: 100%;
-  height: 280px;
+  height: 100% !important;
   object-fit: cover;
   display: block;
 }
@@ -3586,12 +3588,20 @@ img {
     top: auto;
   }
 
+  .hero-image-main img {
+    object-position: 50% 15%;
+  }
+
   .hero-image-offset {
     width: 76%;
     height: 180px;
     right: 0;
     left: auto;
     bottom: -8px;
+  }
+
+  .hero-image-offset img {
+    object-position: 50% 20%;
   }
 
   .studio-board,
@@ -3970,7 +3980,7 @@ img {
 
   .package-media img,
   .package-media video {
-    height: 280px !important;
+    height: 100% !important;
   }
 
   @media (max-width: 980px) {
@@ -3981,7 +3991,7 @@ img {
 
     .package-media img,
     .package-media video {
-      height: 240px !important;
+      height: 100% !important;
     }
   }
 

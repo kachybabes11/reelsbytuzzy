@@ -30,6 +30,7 @@ export const getPackagesPage = async (req, res) => {
     const result = await db.query(`
       SELECT *
       FROM packages
+      ORDER BY id ASC
     `);
 
     res.render("packages/packages", {
