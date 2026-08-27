@@ -23,8 +23,8 @@
 							<span>Featured film</span>
 							<strong><%= pkg.name %></strong>
 						</div>
-						<video controls preload="metadata" playsinline poster="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>">
-							<source src="<%= pkg.mediaSrc %>" type="video/mp4" />
+						<video class="js-lazy-package-video" controls preload="none" playsinline poster="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>">
+							<source data-src="<%= pkg.mediaSrc %>" type="video/mp4" />
 						</video>
 					<% } else { %>
 						<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" onerror="this.hidden=true; this.nextElementSibling.hidden=false;" />
@@ -89,6 +89,26 @@
 		<% }) %>
 	</div>
 </section>
+
+<script>
+(() => {
+	const loadVideo = (video) => {
+		if (video.dataset.loaded === 'true') return;
+
+		const source = video.querySelector('source[data-src]');
+		if (!source) return;
+
+		source.src = source.dataset.src;
+		video.dataset.loaded = 'true';
+		video.load();
+		video.play().catch(() => {});
+	};
+
+	document.querySelectorAll('.js-lazy-package-video').forEach((video) => {
+		video.addEventListener('click', () => loadVideo(video), { once: true });
+	});
+})();
+</script>
 
 
 <%- include('../partials/footer.ejs') %>
