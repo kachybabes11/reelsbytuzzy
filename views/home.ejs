@@ -32,7 +32,7 @@
 
 		<figure class="hero-image hero-image-offset">
 			<img
-				src="/assets/beauty-2.jpg"
+				src="/assets/homepage-image.png"
 				alt=""
 				loading="lazy"
 			/>
@@ -45,9 +45,6 @@
 	const ctaBackgroundVideos = [
 		'https://res.cloudinary.com/rvaahkse/video/upload/w_720/q_auto/f_auto/v1787744657/birthday-hourly',
 		'https://res.cloudinary.com/rvaahkse/video/upload/w_720/q_auto/f_auto/v1787665844/white-wedding',
-		'/assets/home-page-bokku.mp4',
-		'/assets/home-page-award.mp4',
-		'/assets/home-page-bmoni.mp4'
 	].filter(Boolean);
 %>
 
@@ -128,9 +125,8 @@
 				<div class="home-package-media">
 
 					<% if (pkg.mediaType === 'video') { %>
-						<div class="home-package-media-placeholder" aria-hidden="true">
-							<span>Featured film</span>
-							<strong><%= pkg.name %></strong>
+						<div class="home-package-media-placeholder is-video-placeholder" aria-hidden="true">
+							<img src="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>" alt="" />
 						</div>
 						<video
 							controls
@@ -139,7 +135,7 @@
 							poster="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>"
 						>
 							<source
-								src="<%= pkg.thumbnail || pkg.mediaSrc %>"
+								src="<%= pkg.mediaSrc %>"
 								type="video/mp4"
 							/>
 						</video>

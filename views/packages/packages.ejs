@@ -19,15 +19,19 @@
 
 				<div class="package-media">
 					<% if (pkg.mediaType === 'video') { %>
-						<div class="package-media-placeholder" aria-hidden="true">
-							<span>Featured film</span>
-							<strong><%= pkg.name %></strong>
+						<div class="package-media-placeholder is-video-placeholder" aria-hidden="true">
+							<img src="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>" alt="" />
 						</div>
 						<video class="js-lazy-package-video" controls preload="none" playsinline poster="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>">
 							<source data-src="<%= pkg.mediaSrc %>" type="video/mp4" />
 						</video>
 					<% } else { %>
-						<img src="<%= pkg.thumbnail || pkg.mediaSrc %>" alt="<%= pkg.name %> preview" onerror="this.hidden=true; this.nextElementSibling.hidden=false;" />
+						<img
+							src="<%= pkg.mediaSrc || pkg.thumbnail %>"
+							data-fallback-src="<%= pkg.thumbnail || '' %>"
+							alt="<%= pkg.name %> preview"
+							onerror="if (this.dataset.fallbackSrc && !this.dataset.fallbackTried && this.src !== new URL(this.dataset.fallbackSrc, window.location.href).href) { this.dataset.fallbackTried='true'; this.src=this.dataset.fallbackSrc; } else { this.hidden=true; this.nextElementSibling.hidden=false; }"
+						/>
 						<div class="package-media-placeholder is-image-fallback" hidden aria-hidden="true">
 							<span>Featured package</span>
 							<strong><%= pkg.name %></strong>

@@ -1657,6 +1657,18 @@ img {
   line-height: 1;
 }
 
+.home-package-media-placeholder.is-video-placeholder {
+  padding: 0;
+  display: block;
+}
+
+.home-package-media-placeholder.is-video-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .home-package-media .is-image-fallback {
   z-index: 2;
 }
@@ -1740,6 +1752,7 @@ img {
 }
 
 .package-media {
+  min-height: 280px;
   border: 1px solid #cfb396;
   border-radius: 0.82rem;
   overflow: hidden;
@@ -1794,9 +1807,25 @@ img {
   line-height: 1;
 }
 
+.package-media-placeholder.is-video-placeholder {
+  padding: 0;
+  display: block;
+}
+
+.package-media-placeholder.is-video-placeholder img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 .package-media .is-image-fallback,
 .package-detail-media .is-image-fallback {
   z-index: 2;
+}
+
+.package-media-placeholder[hidden] {
+  display: none !important;
 }
 
 .package-head {
@@ -1952,6 +1981,7 @@ img {
 }
 
 .package-detail-media {
+  min-height: 280px;
   position: relative;
   border: 1px solid #d2b697;
   border-radius: 0.9rem;
@@ -1969,6 +1999,10 @@ img {
   object-fit: contain;
   display: block;
   background: #0d0d0d;
+}
+
+.package-detail-media .package-media-placeholder[hidden] {
+  display: none !important;
 }
 
 .package-detail-summary {
@@ -3458,6 +3492,11 @@ img {
     height: 240px;
   }
 
+  .package-media {
+    height: 240px;
+    min-height: 240px;
+  }
+
   .booking-progress,
   .booking-grid,
   .booking-fields-grid,
@@ -3920,6 +3959,29 @@ img {
       bottom: 0.7rem;
       width: 50px;
       height: 50px;
+    }
+  }
+
+  /* Keep package media artwork flush with its card container at every breakpoint. */
+  .package-media {
+    height: 280px;
+    min-height: 280px;
+  }
+
+  .package-media img,
+  .package-media video {
+    height: 280px !important;
+  }
+
+  @media (max-width: 980px) {
+    .package-media {
+      height: 240px;
+      min-height: 240px;
+    }
+
+    .package-media img,
+    .package-media video {
+      height: 240px !important;
     }
   }
 
