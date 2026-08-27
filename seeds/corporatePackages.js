@@ -11,6 +11,7 @@ const corporatePackages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787667803/hourly-corporate.mp4",
+    thumbnail: "/assets/corporate-package-thumbnail.png",
     features: [
       "Select the coverage tier that fits your corporate event",
       "Add extra edited videos as needed",

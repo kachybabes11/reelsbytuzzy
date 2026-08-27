@@ -76,6 +76,7 @@
 				<label>Category <input name="category"></label>
 				<label>Price (NGN) <input name="price" type="number" min="0"></label>
 				<label>Duration (minutes) <input name="durationMinutes" type="number" min="0"></label>
+				<label class="admin-form-wide">Video placeholder image URL <input name="thumbnail" type="text" placeholder="/assets/package-placeholder.jpg"></label>
 				<label>Package type
 					<select name="packageType"><option value="standard">Standard</option><option value="hourly">Hourly</option></select>
 				</label>
@@ -99,6 +100,7 @@
 						<label>Category <input name="category" value="<%= pkg.category || '' %>"></label>
 						<label>Price (NGN) <input name="price" type="number" min="0" value="<%= pkg.price ?? '' %>"></label>
 						<label>Duration (minutes) <input name="durationMinutes" type="number" min="0" value="<%= pkg.durationMinutes ?? '' %>"></label>
+						<label class="admin-form-wide">Video placeholder image URL <input name="thumbnail" type="text" value="<%= pkg.thumbnail || '' %>" placeholder="/assets/package-placeholder.jpg"></label>
 						<label>Package type
 							<select name="packageType">
 								<option value="standard" <%= pkg.packageType === 'standard' ? 'selected' : '' %>>Standard</option>

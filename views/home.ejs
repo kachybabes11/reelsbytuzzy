@@ -128,12 +128,15 @@
 				<div class="home-package-media">
 
 					<% if (pkg.mediaType === 'video') { %>
-
+						<div class="home-package-media-placeholder" aria-hidden="true">
+							<span>Featured film</span>
+							<strong><%= pkg.name %></strong>
+						</div>
 						<video
 							controls
-							preload="none"
+							preload="metadata"
 							playsinline
-							poster="<%= pkg.thumbnail || '' %>"
+							poster="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>"
 						>
 							<source
 								src="<%= pkg.mediaSrc %>"
@@ -148,7 +151,12 @@
 							alt="<%= pkg.name %> preview"
 							loading="lazy"
 							decoding="async"
+							onerror="this.hidden=true; this.nextElementSibling.hidden=false;"
 						/>
+						<div class="home-package-media-placeholder is-image-fallback" hidden aria-hidden="true">
+							<span>Featured package</span>
+							<strong><%= pkg.name %></strong>
+						</div>
 
 					<% } %>
 

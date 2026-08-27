@@ -11,7 +11,8 @@ const hourlyPackages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787667775/hourly-birthday-2.mov",
-    features: [
+     thumbnail: "/assets/hourly-package-thumbnail.png",
+      features: [
       "Select the coverage tier that fits your event",
       "Add extra edited videos as needed",
     ],

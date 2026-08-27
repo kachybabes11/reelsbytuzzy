@@ -14,11 +14,19 @@
 	<div class="package-detail-grid">
 		<div class="package-detail-media">
 			<% if (pkg.mediaType === 'video') { %>
-				<video controls preload="metadata" playsinline>
+				<div class="package-media-placeholder" aria-hidden="true">
+					<span>Featured film</span>
+					<strong><%= pkg.name %></strong>
+				</div>
+				<video controls preload="metadata" playsinline poster="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>">
 					<source src="<%= pkg.mediaSrc %>" type="video/mp4" />
 				</video>
 			<% } else { %>
-				<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" />
+				<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" onerror="this.hidden=true; this.nextElementSibling.hidden=false;" />
+				<div class="package-media-placeholder is-image-fallback" hidden aria-hidden="true">
+					<span>Featured package</span>
+					<strong><%= pkg.name %></strong>
+				</div>
 			<% } %>
 		</div>
 

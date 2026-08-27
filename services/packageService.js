@@ -12,6 +12,7 @@ export function serializePackage(pkg) {
     fullDescription: pkg.full_description ?? pkg.fullDescription,
     mediaType: pkg.media_type ?? pkg.mediaType,
     mediaSrc: pkg.media_src ?? pkg.mediaSrc,
+    thumbnail: pkg.thumbnail ?? null,
     extraFeatures: pkg.extra_features ?? pkg.extraFeatures ?? [],
     packageType: pkg.package_type ?? pkg.packageType,
     isHourly: Boolean(pkg.is_hourly ?? pkg.isHourly) || pkg.package_type === "hourly",

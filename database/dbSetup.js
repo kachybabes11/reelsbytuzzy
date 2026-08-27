@@ -25,6 +25,7 @@ export async function ensureDatabase() {
 
       media_type TEXT,
       media_src TEXT,
+      thumbnail TEXT,
 
       features JSONB NOT NULL DEFAULT '[]'::jsonb,
       extra_features JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -58,6 +59,8 @@ export async function ensureDatabase() {
       ADD COLUMN IF NOT EXISTS duration_minutes INTEGER;
     ALTER TABLE packages
       ADD COLUMN IF NOT EXISTS hourly_rate INTEGER;
+    ALTER TABLE packages
+      ADD COLUMN IF NOT EXISTS thumbnail TEXT;
   `);
 
   await db.query(`

@@ -28,6 +28,7 @@ const seed = async () => {
           full_description,
           media_type,
           media_src,
+          thumbnail,
           features,
           extra_features,
           duration,
@@ -41,8 +42,8 @@ const seed = async () => {
           hourly_rate
         )
         VALUES (
-          $1, $2, $3, $4, $5, $6, $7, $8::jsonb,
-          $9::jsonb, $10, $11, $12, $13, $14, $15, $16::jsonb, $17, $18
+          $1, $2, $3, $4, $5, $6, $7, $8,
+          $9::jsonb, $10::jsonb, $11, $12, $13, $14, $15, $16, $17::jsonb, $18, $19
         )
         ON CONFLICT (slug)
         DO UPDATE SET
@@ -52,6 +53,7 @@ const seed = async () => {
           full_description = EXCLUDED.full_description,
           media_type = EXCLUDED.media_type,
           media_src = EXCLUDED.media_src,
+          thumbnail = EXCLUDED.thumbnail,
           features = EXCLUDED.features,
           extra_features = EXCLUDED.extra_features,
           duration = EXCLUDED.duration,
@@ -72,6 +74,7 @@ const seed = async () => {
           pkg.fullDescription,
           pkg.mediaType,
           pkg.mediaSrc,
+          pkg.thumbnail ?? null,
           JSON.stringify(pkg.features ?? []),
           JSON.stringify(pkg.extraFeatures ?? []),
           pkg.duration,

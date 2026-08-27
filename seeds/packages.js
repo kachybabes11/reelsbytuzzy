@@ -11,6 +11,7 @@ const packages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787665933/yes-to-forever-package.mp4",
+    thumbnail: "/assets/yes-to-thumbnail.jpeg",
     features: [
       "Morning preparations",
       "4 cinematic reels",
@@ -33,6 +34,7 @@ const packages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787665883/full-wedding-experience.mov",
+    thumbnail: "/assets/full-wedding-package-thumbnail.png",
     features: [
       "Morning preparations",
       "4 cinematic reels",
@@ -53,7 +55,8 @@ const packages = [
     fullDescription:
       "The Tuzzy Experience is all about slowing down and capturing the genuine connection between you and your partner. Through carefully directed yet natural moments, we create a premium cinematic highlight that reflects your personalities, chemistry, and the love you share.",
     mediaType: "video",
-    mediaSrc: "assets/the-tuzzy-experience.mp4",
+    mediaSrc: "/assets/the-tuzzy-experience.mp4",
+    thumbnail: "/assets/tuzzy-experience-thumbnail.png",
     features: [
       "Premium highlight video of intentionally Captured Intimate Couple moments",
       "1 Creator",
@@ -74,6 +77,7 @@ const packages = [
       "The Introduction Package is designed to document your introduction ceremony with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "video",
     mediaSrc: "/assets/introduction-package.mp4",
+    thumbnail: "/assets/introduction-package-thumbnail.png",
     features: [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
       "1 Trendy social media reel",
@@ -95,6 +99,7 @@ const packages = [
       "Before the vows, before the celebration, there's your story. Our Pre-Wedding Package transforms your love into a cinematic experience, capturing authentic emotions, effortless romance, and unforgettable moments that reflect who you are as a couple.",
     mediaType: "video",
     mediaSrc: "/assets/pre-wedding-package.mp4",
+    thumbnail: "/assets/pre-wedding-thumbnail.png",
     features: [
       "1 overall highlight video",
       "1 intimate couple video",
@@ -115,6 +120,7 @@ const packages = [
       "The Proposal Package is designed to document your proposal with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
     mediaSrc: "/assets/proposal-wedding-package.avif",
+    thumbnail: "/assets/proposal-wedding-package.avif",
     features: [
       "BTS/Decor Setup of the proposal",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -138,6 +144,7 @@ const packages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787666377/trad-wedding-package.mp4",
+    thumbnail: "/assets/trad-package-thumbnail.png",
     features: [
       "Morning Prep highlights",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -164,6 +171,7 @@ const packages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787666158/premium-wedding.mov",
+    thumbnail: "/assets/premium-white-wedding-thumbnail.png",
     features: [
       "Morning Prep highlights",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -200,6 +208,7 @@ const packages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787666454/standard-white-wedding.mp4",
+    thumbnail: "/assets/standard-white-thumbnail.jpeg",
     features: [
       "Morning Prep highlights",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -225,6 +234,7 @@ const packages = [
       "The Premium Nikkah Wedding Package is designed to document your Nikkah wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
     mediaSrc: "/assets/premium-nikkah.jpg",
+    thumbnail: "/assets/premium-nikkah-.jpg",
     features: [
       "Morning Prep highlights",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -260,6 +270,7 @@ const packages = [
       "The Standard Nikkah Wedding Package is designed to document your Nikkah wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
     mediaSrc: "/assets/standard-nikkah.jpg",
+    thumbnail: "/assets/standard-nikkah.jpg",
     features: [
       "Morning Prep highlights",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -284,7 +295,8 @@ const packages = [
     fullDescription:
       "The Premium Civil Wedding Package is designed to document your civil wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
-    mediaSrc: "/assets/beauty-2.jpg",
+    mediaSrc: "/assets/premium-civil.jpg",
+    thumbnail: "/assets/premium-civil.jpg",
     features: [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
       "Interview moments (Bride, Groom and select guests)",
@@ -309,6 +321,7 @@ const packages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787666348/standard-civil-wedding.mp4",
+    thumbnail: "/assets/standard-civil-thumbnail.jpeg",
     features: [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
       "Interview moments (Bride and Groom)",
@@ -331,6 +344,8 @@ const packages = [
     mediaType: "video",
     mediaSrc:
       "https://res.cloudinary.com/rvaahkse/video/upload/v1787666045/after-party-package-2.mov",
+
+    thumbnail: "/assets/afterparty-thumbnail.jpeg",
     features: [
       "BTS/Setup of the Reception Venue",
       "Bride and Groom’s Entrance",
@@ -354,6 +369,7 @@ const packages = [
       "Zoom Coverage is designed for clients who want a structured coverage window with premium production value. Choose the duration tier that best fits the event and continue through the same booking and payment flow as every other package.",
     mediaType: "image",
     mediaSrc: "/assets/zoom-coverage.jpg",
+    thumbnail: "/assets/zoom-coverage.jpg",
     features: [
       "Choose a 0-6 hour or 6-12 hour coverage tier",
       "Ideal for premium events that need a defined coverage window",
