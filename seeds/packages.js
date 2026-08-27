@@ -234,7 +234,7 @@ const packages = [
       "The Premium Nikkah Wedding Package is designed to document your Nikkah wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
     mediaSrc: "/assets/premium-nikkah.jpg",
-    thumbnail: "/assets/premium-nikkah-.jpg",
+    thumbnail: "/assets/premium-nikkah.jpg",
     features: [
       "Morning Prep highlights",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",

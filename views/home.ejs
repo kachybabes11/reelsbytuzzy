@@ -139,7 +139,7 @@
 							poster="<%= pkg.thumbnail || '/assets/studio-hero-2.svg' %>"
 						>
 							<source
-								src="<%= pkg.mediaSrc %>"
+								src="<%= pkg.thumbnail || pkg.mediaSrc %>"
 								type="video/mp4"
 							/>
 						</video>

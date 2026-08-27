@@ -1,8 +1,8 @@
 <%- include('../partials/header.ejs') %>
 <section class="section-shell error-page">
   <span class="eyebrow">Error</span>
-  <h1 class="page-title"><%= title || 'Something went wrong' %></h1>
-  <p class="page-subtitle"><%= message || 'Please try again.' %></p>
+  <h1 class="page-title"><%= typeof title !== 'undefined' && title ? title : 'Something went wrong' %></h1>
+  <p class="page-subtitle"><%= typeof message !== 'undefined' && message ? message : 'Please try again.' %></p>
   <a class="button button-primary" href="/">Return home</a>
 </section>
 <%- include('../partials/footer.ejs') %>

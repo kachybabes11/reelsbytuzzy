@@ -22,7 +22,7 @@
 					<source data-src="<%= pkg.mediaSrc %>" type="video/mp4" />
 				</video>
 			<% } else { %>
-				<img src="<%= pkg.mediaSrc %>" alt="<%= pkg.name %> preview" onerror="this.hidden=true; this.nextElementSibling.hidden=false;" />
+				<img src="<%= pkg.thumbnail || pkg.mediaSrc %>" alt="<%= pkg.name %> preview" onerror="this.hidden=true; this.nextElementSibling.hidden=false;" />
 				<div class="package-media-placeholder is-image-fallback" hidden aria-hidden="true">
 					<span>Featured package</span>
 					<strong><%= pkg.name %></strong>
