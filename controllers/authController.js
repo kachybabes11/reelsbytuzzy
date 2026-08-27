@@ -251,6 +251,9 @@ export async function resetPassword(req, res, next) {
 
 export function googleAuth(req, res, next) {
   if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    if (req.baseUrl !== "/api/auth") {
+      return res.redirect("/login?error=google-auth-not-configured");
+    }
     return res.status(503).json({
       success: false,
       message: "Google authentication is not configured.",
@@ -276,10 +279,13 @@ export function googleCallback(req, res, next) {
     }
 
     if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Google authentication failed.",
-      });
+      if (req.baseUrl === "/api/auth") {
+        return res.status(401).json({
+          success: false,
+          message: "Google authentication failed.",
+        });
+      }
+      return res.redirect("/login?error=google-authentication-failed");
     }
 
     req.login(user, (loginError) => {
@@ -287,14 +293,18 @@ export function googleCallback(req, res, next) {
         return next(loginError);
       }
 
-      return res.json({
-        success: true,
-        message: "Signed in with Google successfully.",
-        user: {
-          id: user.id,
-          email: user.email,
-        },
-      });
+      if (req.baseUrl === "/api/auth") {
+        return res.json({
+          success: true,
+          message: "Signed in with Google successfully.",
+          user: {
+            id: user.id,
+            email: user.email,
+          },
+        });
+      }
+
+      return res.redirect("/user");
     });
   })(req, res, next);
 }
