@@ -1,6 +1,6 @@
 import express from "express";
 import ejs from "ejs";
-import dotenv from "dotenv";
+import "dotenv/config";
 import bodyParser from "body-parser";
 import csrf from "csurf";
 
@@ -17,8 +17,6 @@ import {
   appErrorHandler,
   notFoundHandler,
 } from "./middleware/errorHandling.js";
-
-dotenv.config();
 
 const app = express();
 
