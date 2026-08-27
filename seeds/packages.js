@@ -295,8 +295,8 @@ const packages = [
     fullDescription:
       "The Premium Civil Wedding Package is designed to document your civil wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "image",
-    mediaSrc: "/assets/premium-civil.jpg",
-    thumbnail: "/assets/premium-civil.jpg",
+    mediaSrc: "/assets/premium-civil-wedding.webp",
+    thumbnail: "/assets/premium-civil-wedding.webp",
     features: [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
       "Interview moments (Bride, Groom and select guests)",
