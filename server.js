@@ -1,24 +1,26 @@
 import app from "./app.js";
-import dotenv from "dotenv";
-import db from "./config/db.js";
-import { ensureDatabase } from "./config/dbSetup.js";
 
-dotenv.config();
+import { ensureDatabase } from "./database/dbSetup.js";
 
-const port = process.env.PORT || 3000;
+import { runPaymentReconciliation } from "./jobs/reconcilePayments.js";
+import { expireBookingHolds } from "./jobs/expireBookingHolds.js";
 
-async function start() {
+const PORT = process.env.PORT || 3000;
+
+const start = async () => {
   try {
-    await ensureDatabase()
-    console.log(`[DB] Using database connection: ${db.activeName}`)
-    app.listen(port, () => {
-      console.log(`Reelsbytuzzy web running on http://localhost:${port}`);
-    });
+    await ensureDatabase().then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    }); })
   } catch (error) {
-    console.error("Failed to initialize database:", error)
-    process.exit(1)
+    console.error("Failed to ensure database:", error);
+    process.exit(1);
   }
-}
+};
 
 start();
 
+setInterval(runPaymentReconciliation, 5 * 60 * 1000);
+
+setInterval(expireBookingHolds, 60 * 1000);

@@ -1,5 +1,5 @@
 import db from "../config/db.js";
-import { maxHourlyBookingHours as defaultMaxHourlyBookingHours } from "../config/bookingSettings.js";
+const defaultMaxHourlyBookingHours = 12;
 
 const MAX_HOURLY_BOOKING_HOURS_KEY = "maxHourlyBookingHours";
 

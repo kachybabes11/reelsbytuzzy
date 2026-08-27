@@ -18,7 +18,7 @@
 	<div class="confirmation-meta">
 		<p><strong>Booking Reference:</strong> <%= bookingReference || 'Pending Manual Review' %></p>
 		<p><strong>Package:</strong> <%= packageName || 'Not Available' %></p>
-		<p><strong>Payment:</strong> <%= paymentStatus || 'Pending' %></p>
+		<p><strong>Payment:</strong> <%= paymentStatus || 'Paid' %></p>
 		<p><strong>Payment Terms:</strong> Paid in full at checkout.</p>
 		<p><strong>Coverage:</strong> Your package selections have been saved.</p>
 		<p><strong>Event Date:</strong> <%= bookingDate ? new Date(bookingDate).toLocaleDateString('en-GB') : 'Not Available' %></p>

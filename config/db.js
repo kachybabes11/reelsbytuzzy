@@ -8,9 +8,13 @@ const { Pool } = pg;
 function parseRequiredPort(name) {
   const value = process.env[name];
   const parsed = Number(value);
-  if (!Number.isInteger(parsed) || parsed <= 0) {
-    throw new Error(`Environment variable ${name} must be a valid port number.`);
+
+  if (!Number.isInteger(parsed) || parsed <= 0 || parsed > 65535) {
+    throw new Error(
+      `Environment variable ${name} must be a valid port number.`,
+    );
   }
+
   return parsed;
 }
 
@@ -24,72 +28,90 @@ const primaryConfig = process.env.DATABASE_URL
   : null;
 
 const fallbackConfig =
-  process.env.PG_USER && process.env.PG_HOST && process.env.PG_DATABASE && process.env.PG_PASSWORD && process.env.PG_PORT
+  process.env.PG_USER &&
+  process.env.PG_HOST &&
+  process.env.PG_DATABASE &&
+  process.env.PG_PASSWORD &&
+  process.env.PG_PORT
     ? {
         user: process.env.PG_USER,
         host: process.env.PG_HOST,
         database: process.env.PG_DATABASE,
         password: process.env.PG_PASSWORD,
         port: parseRequiredPort("PG_PORT"),
-        ssl: process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : false,
+        ssl:
+          process.env.PG_SSL === "true" ? { rejectUnauthorized: false } : false,
       }
     : null;
 
 const primaryPool = primaryConfig ? new Pool(primaryConfig) : null;
 const fallbackPool = fallbackConfig ? new Pool(fallbackConfig) : null;
+
 let activePool = primaryPool || fallbackPool;
 let activeName = primaryPool ? "primary" : fallbackPool ? "fallback" : null;
 
-function logFallback(reason) {
-  console.warn("[DB] Primary database unavailable, falling back to local database.", reason?.message || reason);
+function logFallback(error) {
+  console.warn(
+    "[DB] Primary database unavailable. Falling back to local database.",
+    error?.message || error,
+  );
 }
 
-async function switchToFallback(reason) {
+function switchToFallback(error) {
   if (!fallbackPool || activePool === fallbackPool) {
-    throw reason
+    throw error;
   }
-  logFallback(reason)
-  activePool = fallbackPool
-  activeName = "fallback"
-  return activePool
+
+  logFallback(error);
+
+  activePool = fallbackPool;
+  activeName = "fallback";
+
+  return activePool;
 }
 
 async function query(...args) {
   if (!activePool) {
-    throw new Error("No database connection is configured.")
+    throw new Error("No database connection is configured.");
   }
+
   try {
-    return await activePool.query(...args)
+    return await activePool.query(...args);
   } catch (error) {
     if (primaryPool && fallbackPool && activePool === primaryPool) {
-      await switchToFallback(error)
-      return await activePool.query(...args)
+      const pool = switchToFallback(error);
+      return pool.query(...args);
     }
-    throw error
+
+    throw error;
   }
 }
 
 async function connect() {
   if (!activePool) {
-    throw new Error("No database connection is configured.")
+    throw new Error("No database connection is configured.");
   }
-  return activePool.connect()
+
+  return activePool.connect();
 }
 
 async function end() {
-  if (primaryPool) await primaryPool.end()
-  if (fallbackPool) await fallbackPool.end()
+  const pools = [primaryPool, fallbackPool].filter(Boolean);
+
+  await Promise.all(pools.map((pool) => pool.end()));
 }
 
 const db = {
   query,
   connect,
   end,
+
   get activeName() {
-    return activeName
+    return activeName;
   },
+
   isUsingFallback() {
-    return activeName === "fallback"
+    return activeName === "fallback";
   },
 };
 

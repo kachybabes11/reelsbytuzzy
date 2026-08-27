@@ -1,97 +1,198 @@
-import basePackages from "../config/packages.js";
-import hourlyPackagesCatalog from "../config/hourlyPackages.js";
-import corporatePackagesCatalog from "../config/corporatePackages.js";
+import { findPackageBySlug } from "../models/packageModel.js";
 
-function parseStandardDurationMinutes(duration) {
-  const normalized = String(duration || "").trim().toLowerCase();
-
-  if (normalized.includes("full day")) return 480;
-  if (normalized.includes("half day")) return 240;
-
-  const hourMatch = normalized.match(/(\d+(?:\.\d+)?)\s*hours?/);
-  if (hourMatch) {
-    return Math.round(Number(hourMatch[1]) * 60);
-  }
-
-  const minuteMatch = normalized.match(/(\d+)\s*mins?/);
-  if (minuteMatch) {
-    return Number(minuteMatch[1]);
-  }
-
-  if (normalized.includes("custom")) return 240;
-  return null;
+function parseDurationMinutes(value) {
+  const match = String(value || "").match(/(\d+)\s*hours?/i);
+  return match ? Number(match[1]) * 60 : null;
 }
 
-function normalizeBasePackage(pkg) {
+export function serializePackage(pkg) {
+  if (!pkg) return null;
   return {
     ...pkg,
-    packageType: "standard",
-    isHourly: false,
-    hourlyRate: null,
-    maxHours: null,
-    durationMinutes: pkg.durationMinutes || parseStandardDurationMinutes(pkg.duration),
+    fullDescription: pkg.full_description ?? pkg.fullDescription,
+    mediaType: pkg.media_type ?? pkg.mediaType,
+    mediaSrc: pkg.media_src ?? pkg.mediaSrc,
+    extraFeatures: pkg.extra_features ?? pkg.extraFeatures ?? [],
+    packageType: pkg.package_type ?? pkg.packageType,
+    isHourly: Boolean(pkg.is_hourly ?? pkg.isHourly) || pkg.package_type === "hourly",
+    bookingConfig: pkg.booking_config ?? pkg.bookingConfig ?? {},
+    durationMinutes: pkg.duration_minutes ?? pkg.durationMinutes ?? parseDurationMinutes(pkg.duration),
+    hourlyRate: pkg.hourly_rate ?? pkg.hourlyRate ?? null,
+    isActive: pkg.is_active ?? pkg.isActive,
   };
 }
 
-function normalizeFixedPackage(pkg) {
-  return {
-    id: pkg.id,
-    slug: pkg.slug,
-    category: pkg.category,
-    name: pkg.name || pkg.category,
-    description: pkg.description,
-    fullDescription: pkg.fullDescription || pkg.description,
-    mediaType: pkg.mediaType || "image",
-    mediaSrc: pkg.mediaSrc || "/assets/beauty-1.jpg",
-    features: Array.isArray(pkg.features) ? pkg.features.filter(Boolean) : [],
-    duration: pkg.duration,
-    delivery: pkg.delivery,
-    price: Number(pkg.price),
-    popular: Boolean(pkg.popular),
-    packageType: pkg.packageType || (pkg.isHourly ? "hourly" : "standard"),
-    isHourly: Boolean(pkg.isHourly),
-    hourlyRate: pkg.hourlyRate == null ? null : Number(pkg.hourlyRate),
-    maxHours: pkg.maxHours || null,
-    bookingConfig: pkg.bookingConfig || null,
-  };
-}
+function normalizeNumber(value) {
+  const number = Number(value);
 
-export async function getHourlyPackages() {
-  return hourlyPackagesCatalog.map(normalizeFixedPackage);
-}
-
-export async function getPackages() {
-  const hourlyPackages = await getHourlyPackages();
-  const corporatePackages = corporatePackagesCatalog.map(normalizeFixedPackage);
-  const seenSlugs = new Set();
-  return [...basePackages.map(normalizeBasePackage), ...hourlyPackages, ...corporatePackages].filter((pkg) => {
-    if (seenSlugs.has(pkg.slug)) {
-      return false;
-    }
-    seenSlugs.add(pkg.slug);
-    return true;
-  });
-}
-
-export async function getPackageBySlug(slug) {
-  if (!slug) {
+  if (!Number.isInteger(number) || number < 0) {
     return null;
   }
 
-  const basePackage = basePackages.find((item) => item.slug === slug);
-  if (basePackage) {
-    return normalizeBasePackage(basePackage);
+  return number;
+}
+
+export async function calculatePackagePrice({
+  packageSlug,
+  selectedHours,
+  numberOfVideos = 0,
+}) {
+  const pkg = await findPackageBySlug(packageSlug);
+
+  if (!pkg) {
+    const error = new Error("Package not found or inactive.");
+
+    error.statusCode = 404;
+
+    throw error;
   }
 
-  const catalogPackage = hourlyPackagesCatalog.find((item) => item.slug === slug);
-  if (catalogPackage) {
-    return normalizeFixedPackage(catalogPackage);
+  const config = pkg.booking_config || {};
+
+  const videos = normalizeNumber(numberOfVideos);
+
+  if (videos === null) {
+    const error = new Error("Invalid number of videos.");
+
+    error.statusCode = 400;
+
+    throw error;
   }
 
-  const corporatePackage = corporatePackagesCatalog.find((item) => item.slug === slug);
-  if (corporatePackage) {
-    return normalizeFixedPackage(corporatePackage);
+  let packagePrice = Number(pkg.price);
+
+  let selectedOptionPrice = null;
+
+  let selectedOptionLabel = null;
+
+  let hours = null;
+
+  let videoPrice = 0;
+
+  /*
+   * HOURLY PACKAGES
+   */
+
+  if (
+    pkg.package_type === "hourly" ||
+    pkg.is_hourly === true ||
+    config.mode === "tiered"
+  ) {
+    hours = normalizeNumber(selectedHours);
+
+    if (!hours) {
+      const error = new Error("A valid coverage tier is required.");
+
+      error.statusCode = 400;
+
+      throw error;
+    }
+
+    const durationOptions = Array.isArray(config.durationOptions)
+      ? config.durationOptions
+      : [];
+
+    const selectedOption = durationOptions.find(
+      (option) => Number(option.value) === hours,
+    );
+
+    if (!selectedOption) {
+      const error = new Error("Invalid coverage tier.");
+
+      error.statusCode = 400;
+
+      throw error;
+    }
+
+    selectedOptionPrice = Number(selectedOption.price);
+
+    selectedOptionLabel = selectedOption.label;
+
+    packagePrice = selectedOptionPrice;
+
+    /*
+     * Validate videos against the
+     * package's allowed options.
+     */
+
+    const videoOptions = Array.isArray(config.videoOptions)
+      ? config.videoOptions.map(Number)
+      : [];
+
+    if (config.mode !== "hourly-booking" && videos > 0) {
+      const error = new Error("This package does not support video selection.");
+      error.statusCode = 400;
+      throw error;
+    }
+
+    if (config.mode === "hourly-booking" && videos > 0 && !videoOptions.includes(videos)) {
+      const error = new Error("Invalid number of videos.");
+
+      error.statusCode = 400;
+
+      throw error;
+    }
+
+    videoPrice = config.mode === "hourly-booking" && videos > 0
+      ? Number(config.videoPrice || 0)
+      : 0;
+  } else {
+
+  /*
+   * STANDARD PACKAGE
+   */
+    if (videos > 0) {
+      const error = new Error("This package does not support video selection.");
+
+      error.statusCode = 400;
+
+      throw error;
+    }
   }
 
-  return null;
+  const totalAmount = packagePrice + videoPrice;
+
+  return {
+    package: pkg,
+
+    packageId: pkg.id,
+
+    packageSlug: pkg.slug,
+
+    packageName: pkg.name,
+
+    packageType: pkg.package_type,
+
+    packagePrice,
+
+    selectedHours: hours,
+
+    selectedOptionLabel,
+
+    selectedOptionPrice,
+
+    numberOfVideos: videos,
+
+    videoPrice,
+
+    totalAmount,
+
+    currency: "NGN",
+
+    pricingSnapshot: {
+      packageId: pkg.id,
+      packageSlug: pkg.slug,
+      packageName: pkg.name,
+      packageType: pkg.package_type,
+      packagePrice,
+      selectedHours: hours,
+      selectedOptionLabel,
+      selectedOptionPrice,
+      numberOfVideos: videos,
+      videoPrice,
+      totalAmount,
+      durationMinutes: pkg.duration_minutes || parseDurationMinutes(pkg.duration),
+      currency: "NGN",
+    },
+  };
 }

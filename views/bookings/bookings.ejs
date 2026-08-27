@@ -1,17 +1,18 @@
-<%- include('./partials/header.ejs') %>
-<%- include('./partials/messages.ejs') %>
+<%- include('../partials/header.ejs') %>
+<%- include('../partials/messages.ejs') %>
 
 <section class="section-shell booking-shell" data-hold-minutes="<%= holdMinutes %>">
 	<header class="booking-intro">
 		<span class="eyebrow">Booking</span>
 		<h1 class="page-title">Book Your Shoot</h1>
 		<p class="page-subtitle">A clean 4-step booking flow with secure checkout. Your selected time slot is held for <strong><%= holdMinutes %> minutes</strong> after checkout starts.</p>
-	</header>
+	</header>-
 
-	<form id="booking-form" class="booking-layout" method="post" action="/bookings/start-payment" novalidate>
+	<form id="booking-form" class="booking-layout" method="post" action="/api/bookings/start-payment" novalidate>
 		<input type="hidden" name="_csrf" value="<%= csrfToken %>" />
 		<input type="hidden" id="packageSlug" name="packageSlug" value="<%= selectedPackage?.slug || '' %>" />
 		<input type="hidden" id="durationMinutes" name="durationMinutes" value="" />
+		<input type="hidden" id="endTime" name="endTime" value="" />
 		<input type="hidden" id="selectedOptionLabel" name="selectedOptionLabel" value="" />
 		<input type="hidden" id="selectedOptionPrice" name="selectedOptionPrice" value="" />
 		<input type="hidden" id="eventType" name="eventType" value="Booking" />
@@ -339,12 +340,18 @@
 		const selection = getSelection();
 		const durationMinutes = selection?.selectedHours ? Number(selection.selectedHours) * 60 : Number(activePackage?.durationMinutes || 0);
 		durationMinutesInput.value = Number.isInteger(durationMinutes) && durationMinutes > 0 ? String(durationMinutes) : '';
+		const startTime = document.getElementById('startTime').value;
+		if (startTime && durationMinutes > 0) {
+			const [hours, minutes] = startTime.split(':').map(Number);
+			const end = new Date(1970, 0, 1, hours, minutes + durationMinutes);
+			document.getElementById('endTime').value = `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+		}
 		selectedOptionLabelInput.value = selection?.selectedOptionLabel || '';
 		selectedOptionPriceInput.value = selection?.selectedOptionPrice || '';
 		selectedVideosHiddenInput.value = selection?.numberOfVideos || '';
 		if (isPremiumPackage()) {
 			eventTypeHiddenInput.value = 'Wedding Collection';
-			selectedWeddingEventsInput.value = JSON.stringify(Array.from(premiumState.selected));
+			selectedWeddingEventsInput.value = JSON.stringify(getSelectedPremiumEventsForValidation().map((pkg) => pkg.slug));
 			selectedEventDatesInput.value = JSON.stringify(premiumState.dates);
 			selectedEventTimesInput.value = JSON.stringify(premiumState.times);
 		} else {
@@ -357,22 +364,23 @@
 
 	function populateSelect(select, options, placeholderLabel) {
 		if (!select) return;
-		const currentValue = select.value;
 		const optionMarkup = [`<option value="">${placeholderLabel}</option>`];
 		options.forEach((option) => {
 			optionMarkup.push(`<option value="${String(option.value)}">${option.label}</option>`);
 		});
 		select.innerHTML = optionMarkup.join('');
-		if (currentValue && options.some((option) => String(option.value) === currentValue)) {
-			select.value = currentValue;
-		} else if (options.length) {
-			select.value = String(options[0].value);
-		}
+		select.selectedIndex = 0;
+		select.value = '';
 	}
 
 	function getSelection() {
 		const config = getBookingConfig();
-		if (!config) {
+		const hasConfiguredSelection = config && (
+			(config.mode === 'hourly-booking' || config.mode === 'tiered') &&
+			Array.isArray(config.durationOptions) &&
+			config.durationOptions.length > 0
+		);
+		if (!hasConfiguredSelection) {
 			return {
 				totalPrice: Number(activePackage?.price || 0),
 				selectedOptionLabel: null,
@@ -645,7 +653,13 @@
 			&& document.getElementById('startTime').value
 			&& Boolean(activePackage);
 		if (!baseReady) return false;
-		if (getBookingConfig()) {
+		const config = getBookingConfig();
+		const hasConfiguredSelection = config && (
+			(config.mode === 'hourly-booking' || config.mode === 'tiered') &&
+			Array.isArray(config.durationOptions) &&
+			config.durationOptions.length > 0
+		);
+		if (hasConfiguredSelection) {
 			const selection = getSelection();
 			return Boolean(selection && Number.isInteger(Number(selection.selectedHours)));
 		}
@@ -830,6 +844,7 @@
 		const payload = {
 			bookingDate: document.getElementById('bookingDate').value,
 			startTime: document.getElementById('startTime').value,
+			endTime: document.getElementById('endTime').value,
 			durationMinutes: getSelectedDurationMinutes(),
 			selectedHours: selectedHoursInput.value,
 			selectedVideos: selectedVideosInput.value,
@@ -841,7 +856,7 @@
 		};
 
 		try {
-			const response = await fetch('/bookings/check-availability', {
+			const response = await fetch('/api/bookings/check-availability', {
 				method: 'POST',
 				credentials: 'same-origin',
 				headers: {
@@ -933,15 +948,14 @@
 		updateProgress();
 	});
 
-	form.addEventListener('submit', (event) => {
+	form.addEventListener('submit', async (event) => {
+		event.preventDefault();
 		if (!packageSlugInput.value) {
-			event.preventDefault();
 			currentStep = 1;
 			updateProgress();
 			return;
 		}
 		if (!availabilityPassed) {
-			event.preventDefault();
 			availabilityMessage.className = 'booking-status error';
 			availabilityMessage.textContent = 'Please check availability before continuing.';
 			currentStep = 2;
@@ -949,7 +963,6 @@
 			return;
 		}
 		if (isPremiumPackage() && !isPremiumSelectionComplete()) {
-			event.preventDefault();
 			availabilityMessage.className = 'booking-status error';
 			availabilityMessage.textContent = 'Please finish your premium package selections and event dates.';
 			currentStep = 2;
@@ -957,6 +970,55 @@
 			return;
 		}
 		updateDerivedInputs();
+		const button = form.querySelector('button[type="submit"]');
+		button.disabled = true;
+		try {
+			const holdResponse = await fetch('/api/bookings/hold', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'CSRF-Token': document.querySelector('input[name="_csrf"]').value,
+				},
+				body: JSON.stringify({
+					packageSlug: packageSlugInput.value,
+					selectedHours: selectedHoursInput.value || null,
+					numberOfVideos: selectedVideosInput.value || 0,
+					bookingDate: document.getElementById('bookingDate').value,
+					startTime: document.getElementById('startTime').value,
+					endTime: document.getElementById('endTime').value,
+					durationMinutes: getSelectedDurationMinutes(),
+					location: document.getElementById('eventAddress').value.trim(),
+					eventType: eventTypeHiddenInput.value,
+					eventAddress: document.getElementById('eventAddress').value.trim(),
+					customerName: document.getElementById('fullName').value.trim(),
+					customerPhone: document.getElementById('phone').value.trim(),
+					customerEmail: document.getElementById('email').value.trim(),
+					additionalNotes: document.getElementById('notes').value.trim(),
+					selectedWeddingEvents: selectedWeddingEventsInput.value,
+					selectedEventDates: selectedEventDatesInput.value,
+					selectedEventTimes: selectedEventTimesInput.value,
+				}),
+			});
+			const holdData = await holdResponse.json();
+			if (!holdResponse.ok || !holdData.success) throw new Error(holdData.message || 'Unable to reserve this slot.');
+			const paymentResponse = await fetch('/api/payments/initialize', {
+				method: 'POST',
+				credentials: 'same-origin',
+				headers: {
+					'Content-Type': 'application/json',
+					'CSRF-Token': document.querySelector('input[name="_csrf"]').value,
+				},
+				body: JSON.stringify({ holdToken: holdData.hold.holdToken }),
+			});
+			const paymentData = await paymentResponse.json();
+			if (!paymentResponse.ok || !paymentData.success) throw new Error(paymentData.message || 'Unable to start payment.');
+			window.location.assign(paymentData.payment.authorizationUrl);
+		} catch (error) {
+			availabilityMessage.className = 'booking-status error';
+			availabilityMessage.textContent = error.message || 'Unable to start checkout.';
+			button.disabled = false;
+		}
 	});
 
 	if (packageSlugInput.value) {
@@ -974,4 +1036,4 @@
 })();
 </script>
 
-<%- include('./partials/footer.ejs') %>
+<%- include('../partials/footer.ejs') %>

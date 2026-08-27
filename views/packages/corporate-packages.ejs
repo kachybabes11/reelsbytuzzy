@@ -1,12 +1,12 @@
-<%- include('./partials/header.ejs') %>
-<%- include('./partials/messages.ejs') %>
+<%- include('../partials/header.ejs') %>
+<%- include('../partials/messages.ejs') %>
 
 <section class="section-shell hourly-booking-showcase">
 	<article class="hourly-showcase-card">
 		<div class="hourly-simple-intro">
-			<span class="eyebrow">Hourly Booking</span>
-			<h1 class="page-title"><%= pkg ? pkg.name : 'Hourly Booking' %></h1>
-			<p class="page-subtitle">Choose a session tier first, then add your preferred number of videos.</p>
+			<span class="eyebrow">Corporate Events</span>
+			<h1 class="page-title"><%= pkg ? pkg.name : 'Corporate Hourly Booking' %></h1>
+			<p class="page-subtitle">Choose a coverage tier first, then add your preferred number of videos.</p>
 			<p class="hourly-pricing-formula">Total price = Session tier + (Number of videos × ₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %>)</p>
 		</div>
 
@@ -30,22 +30,13 @@
 		</section>
 
 		<section class="hourly-simple-section">
-			<h2>Event Types</h2>
-			<div class="hourly-event-pills">
-				<% if ((pkg?.bookingConfig?.eventTypes || []).length === 0) { %>
-					<span class="hourly-event-pill">Event options coming soon</span>
-				<% } %>
-				<% (pkg?.bookingConfig?.eventTypes || []).forEach((eventType) => { %>
-					<span class="hourly-event-pill"><%= eventType %></span>
-				<% }) %>
-			</div>
 			<p class="hourly-video-note">Each edited reel costs ₦<%= Number(pkg?.bookingConfig?.videoPrice || 0).toLocaleString() %> and is added to your selected session tier.</p>
 		</section>
 
 		<div class="hourly-package-actions">
-			<a href="/bookings?package=<%= pkg ? encodeURIComponent(pkg.slug) : '' %>" class="button button-primary">Proceed to Hourly Booking</a>
+			<a href="/bookings?package=<%= pkg ? encodeURIComponent(pkg.slug) : '' %>" class="button button-primary">Proceed to Corporate Booking</a>
 		</div>
 	</article>
 </section>
 
-<%- include('./partials/footer.ejs') %>
+<%- include('../partials/footer.ejs') %>
