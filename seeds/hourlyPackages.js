@@ -10,9 +10,9 @@ const hourlyPackages = [
       "Hourly Booking is our flexible coverage option for events that need premium videography support without committing to a fixed package. Select a duration tier, choose how many videos you want delivered, and continue through the same booking flow used by every other package.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787667775/hourly-birthday-2.mov",
-     thumbnail: "/assets/hourly-package-thumbnail.png",
-      features: [
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096152/hourly-birthday-2.mov",
+    thumbnail: "/assets/hourly-package-thumbnail.png",
+    features: [
       "Select the coverage tier that fits your event",
       "Add extra edited videos as needed",
     ],

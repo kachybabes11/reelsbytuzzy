@@ -10,8 +10,8 @@ const packages = [
       "Your love story deserves to be told in its entirety. Yes to Forever is our signature all-inclusive wedding package, thoughtfully designed for couples who want every chapter of their journey preserved through timeless storytelling. From the excitement of your proposal to two wedding celebrations of your choice.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787665933/yes-to-forever-package.mp4",
-    thumbnail: "/assets/yes-to-thumbnail.jpeg",
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096149/deedb93a2c4e4514b012c78d9e5eaf84.mov",
+    thumbnail: "/assets/yes-to-forever-thumbnail.jpeg",
     features: [
       "Morning preparations",
       "4 cinematic reels",
@@ -55,7 +55,8 @@ const packages = [
     fullDescription:
       "The Tuzzy Experience is all about slowing down and capturing the genuine connection between you and your partner. Through carefully directed yet natural moments, we create a premium cinematic highlight that reflects your personalities, chemistry, and the love you share.",
     mediaType: "video",
-    mediaSrc: "/assets/the-tuzzy-experience.mp4",
+    mediaSrc:
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096328/IMG_5517.mov",
     thumbnail: "/assets/tuzzy-experience-thumbnail.png",
     features: [
       "Premium highlight video of intentionally Captured Intimate Couple moments",
@@ -76,7 +77,8 @@ const packages = [
     fullDescription:
       "The Introduction Package is designed to document your introduction ceremony with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "video",
-    mediaSrc: "/assets/introduction-package.mp4",
+    mediaSrc:
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790112300/SIMISOLA_SEGUN___The_Introduction_Content_creator_reelsbytuzzyPhotography_chuchuojekwe_D.mov",
     thumbnail: "/assets/introduction-package-thumbnail.png",
     features: [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -98,7 +100,8 @@ const packages = [
     fullDescription:
       "Before the vows, before the celebration, there's your story. Our Pre-Wedding Package transforms your love into a cinematic experience, capturing authentic emotions, effortless romance, and unforgettable moments that reflect who you are as a couple.",
     mediaType: "video",
-    mediaSrc: "/assets/pre-wedding-package.mp4",
+    mediaSrc:
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096315/IMG_1720.mov",
     thumbnail: "/assets/pre-wedding-thumbnail.png",
     features: [
       "1 overall highlight video",
@@ -143,7 +146,7 @@ const packages = [
       "Honor your roots with a timeless cinematic experience. Our Traditional Wedding Package is thoughtfully crafted to capture every vibrant detail, heartfelt emotion, and rich cultural moment that makes your day unforgettable.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787666377/trad-wedding-package.mp4",
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096089/IMG_2207.mov",
     thumbnail: "/assets/trad-package-thumbnail.png",
     features: [
       "Morning Prep highlights",
@@ -170,7 +173,7 @@ const packages = [
       "The Premium White Wedding Package is designed to document your white wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787666158/premium-wedding.mov",
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096375/IMG_3259.mov",
     thumbnail: "/assets/premium-white-wedding-thumbnail.png",
     features: [
       "Morning Prep highlights",
@@ -207,8 +210,8 @@ const packages = [
       "The Standard White Wedding Package is designed to document your white wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787666454/standard-white-wedding.mp4",
-    thumbnail: "/assets/standard-white-thumbnail.jpeg",
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096642/IMG_3905.mov",
+    thumbnail: "/assets/standard-white-thumbnail.png",
     features: [
       "Morning Prep highlights",
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -294,9 +297,10 @@ const packages = [
       "A cinematic package capturing the essence of your civil wedding.",
     fullDescription:
       "The Premium Civil Wedding Package is designed to document your civil wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
-    mediaType: "image",
-    mediaSrc: "/assets/premium-civil-wedding.webp",
-    thumbnail: "/assets/premium-civil-wedding.webp",
+    mediaType: "video",
+    mediaSrc:
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096189/Onyinye_Stan_In_a_quiet_moment_two_souls_chose_forever_Bride_mz_dikko_Photographer_by-_f.mov",
+    thumbnail: "/assets/premium-civil-thumbnail.jpeg",
     features: [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
       "Interview moments (Bride, Groom and select guests)",
@@ -320,7 +324,7 @@ const packages = [
       "The Standard Civil Wedding Package is designed to document your civil wedding with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787666348/standard-civil-wedding.mp4",
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096204/IMG_2206.mov",
     thumbnail: "/assets/standard-civil-thumbnail.jpeg",
     features: [
       "The Tuzzy Experience (Intentionally Captured Intimate Couple moments)",
@@ -343,7 +347,7 @@ const packages = [
       "The Afterparty Package is designed to document your afterparty with cinematic precision. From candid moments to key highlights, we ensure every significant detail is captured, creating a memorable film that you can cherish forever.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787666045/after-party-package-2.mov",
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096607/IMG_3279.mov",
 
     thumbnail: "/assets/afterparty-thumbnail.jpeg",
     features: [

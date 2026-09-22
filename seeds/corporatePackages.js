@@ -10,7 +10,7 @@ const corporatePackages = [
       "Hourly Booking is our flexible coverage option for corporate events that need premium videography support without committing to a fixed package. Select a duration tier, choose how many videos you want delivered.",
     mediaType: "video",
     mediaSrc:
-      "https://res.cloudinary.com/rvaahkse/video/upload/v1787667803/hourly-corporate.mp4",
+      "https://res.cloudinary.com/rvaahkse/video/upload/v1790096602/IMG_1831.mov",
     thumbnail: "/assets/corporate-package-thumbnail.png",
     features: [
       "Select the coverage tier that fits your corporate event",
